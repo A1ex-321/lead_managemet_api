@@ -11,6 +11,13 @@ use Illuminate\Http\Request;
 use App\Models\Lead;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Pagination\LengthAwarePaginator;
+
+ 
+
+
 class LeadController extends Controller
 {
     public function lead_create(Request $request)
@@ -19,7 +26,7 @@ class LeadController extends Controller
             // Validate the request data
             $request->validate([
                 // 'name' => 'required|string|max:255',
-                'phone' => 'required|unique:lead,phone',
+                'phone' => 'required|max:10|min:10|unique:lead,phone',
                 // 'password' => 'required|string|min:8',
             ]);
             // $formData = $request->all();
@@ -41,11 +48,55 @@ class LeadController extends Controller
                 'category' => $request->input('category')
 
             ]);
-            return response()->json(['message' => 'lead created successfully','lead'=>$user], 201);
+            return response()->json(['message' => 'lead created successfully',], 201);
         } catch (ValidationException $e) {
             return response()->json(['error' => $e->validator->errors()->first()], 422);
         } catch (\Exception $e) {
-            return response()->json(['error' => 'Registration failed',$e->getMessage()], 500);
+            return response()->json(['error' => 'Registration failed', $e->getMessage()], 500);
+        }
+    }
+    public function all_lead()
+    {
+        try {
+            $users = Lead::paginate(5);
+            return response()->json(['leads' => $users]);
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Registration failed', $e->getMessage()], 500);
+        }
+    }
+    public function single_lead($id)
+    {
+        try {
+        $cartItem = Lead::find($id);
+            return response()->json(['leads' => $cartItem]);
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Registration failed', $e->getMessage()], 500);
+        }
+    }
+    public function age(Request $request)
+    {
+        try {
+            $users = Lead::all();
+            foreach ($users as $item) {
+                $daysDifference = Carbon::now()->diffInDays($item->created_at);
+                $userDetails[] = [
+                    'id' =>$item->id,
+                    'name' => $item->name,
+                    'age' => $daysDifference,
+                    'phone'=>$item->phone,
+                    'category'=>$item->category
+                ];
+              }
+            $perPage = 5; 
+            $currentPage = LengthAwarePaginator::resolveCurrentPage();
+            $pagedData = array_slice($userDetails, ($currentPage - 1) * $perPage, $perPage);
+            $usersPaginated = new LengthAwarePaginator($pagedData, count($userDetails), $perPage);
+            $usersPaginated->setPath(request()->url());
+            // Log::info('date aaaaaAPI Request: ' . json_encode($userDetails));
+            // Log::info('date currentAPI Request: ' . json_encode($date));
+            return response()->json(['leads' => $usersPaginated]);
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'failed', $e->getMessage()], 500);
         }
     }
 }
