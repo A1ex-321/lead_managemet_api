@@ -15,9 +15,6 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Pagination\LengthAwarePaginator;
 
- 
-
-
 class LeadController extends Controller
 {
     public function lead_create(Request $request)
@@ -25,12 +22,9 @@ class LeadController extends Controller
         try {
             // Validate the request data
             $request->validate([
-                // 'name' => 'required|string|max:255',
                 'phone' => 'required|max:10|min:10|unique:lead,phone',
-                // 'password' => 'required|string|min:8',
             ]);
-            // $formData = $request->all();
-            // lead::create($formData);
+
             // Create a new user
             $user = Lead::create([
                 'comment' => $request->input('comment'),
@@ -46,7 +40,6 @@ class LeadController extends Controller
                 'group' => $request->input('group'),
                 'tags' => $request->input('tags'),
                 'category' => $request->input('category')
-
             ]);
             return response()->json(['message' => 'lead created successfully',], 201);
         } catch (ValidationException $e) {
@@ -67,7 +60,7 @@ class LeadController extends Controller
     public function single_lead($id)
     {
         try {
-        $cartItem = Lead::find($id);
+            $cartItem = Lead::find($id);
             return response()->json(['leads' => $cartItem]);
         } catch (\Exception $e) {
             return response()->json(['error' => 'Registration failed', $e->getMessage()], 500);
@@ -78,16 +71,16 @@ class LeadController extends Controller
         try {
             $users = Lead::all();
             foreach ($users as $item) {
-                $daysDifference = Carbon::now()->diffInDays($item->created_at)+1;
+                $daysDifference = Carbon::now()->diffInDays($item->created_at) + 1;
                 $userDetails[] = [
-                    'id' =>$item->id,
+                    'id' => $item->id,
                     'name' => $item->name,
                     'age' => $daysDifference,
-                    'phone'=>$item->phone,
-                    'category'=>$item->category
+                    'phone' => $item->phone,
+                    'category' => $item->category
                 ];
-              }
-            $perPage = 5; 
+            }
+            $perPage = count($userDetails);
             $currentPage = LengthAwarePaginator::resolveCurrentPage();
             $pagedData = array_slice($userDetails, ($currentPage - 1) * $perPage, $perPage);
             $usersPaginated = new LengthAwarePaginator($pagedData, count($userDetails), $perPage);
@@ -99,17 +92,17 @@ class LeadController extends Controller
             return response()->json(['error' => 'failed', $e->getMessage()], 500);
         }
     }
-    public function lead_update(Request $request,$id)
+    public function lead_update(Request $request, $id)
     {
         try {
             // Validate the request data
             $cartItem = Lead::findOrFail($id);
             $request->validate([
                 // 'name' => 'required|string|max:255',
-                'phone' => 'required|max:10|min:10|unique:lead,phone,'. $cartItem->id,
+                'phone' => 'required|max:10|min:10|unique:lead,phone,' . $cartItem->id,
                 // 'password' => 'required|string|min:8',
             ]);
-            
+
             // update a exist user
             $cartItem->comment = $request->input('comment');
             $cartItem->name = $request->input('name');
@@ -140,7 +133,29 @@ class LeadController extends Controller
             return response()->json(['error' => 'Item not found'], 404);
         }
         $cartItem->delete();
-        // $updatedCart = $this->getUpdatedCartData();
         return response()->json(['msg' => 'Item deleted successfully'], 404);
+    }
+    public function search(Request $request)
+    {
+        try {
+            $query = lead::query();
+
+            // Filter by username
+            if ($request->has('name')) {
+                $query->where('name', 'like', '%' . $request->input('name') . '%');
+            }
+
+            // Filter by phone number
+            if ($request->has('phone')) {
+                $query->where('phone', 'like', '%' . $request->input('phone') . '%');
+            }
+
+            $users = $query->get();
+            return response()->json(['users' => $users]);
+        } catch (ValidationException $e) {
+            return response()->json(['error' => $e->validator->errors()->first()], 422);
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Registration failed', $e->getMessage()], 500);
+        }
     }
 }
