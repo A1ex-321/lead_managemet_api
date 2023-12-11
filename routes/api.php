@@ -23,6 +23,10 @@ Route::post('/leads', [LeadController::class, 'lead_create']);
 Route::get('/leadsall', [LeadController::class, 'all_lead']);
 Route::get('/singleleads/{id}', [LeadController::class, 'single_lead']);
 Route::get('/age', [LeadController::class, 'age']);
+Route::post('/lead_update/{id}', [LeadController::class, 'lead_update']);
+Route::get('/lead_delete/{id}', [LeadController::class, 'lead_delete']);
+
+
 
 
 

@@ -78,7 +78,7 @@ class LeadController extends Controller
         try {
             $users = Lead::all();
             foreach ($users as $item) {
-                $daysDifference = Carbon::now()->diffInDays($item->created_at);
+                $daysDifference = Carbon::now()->diffInDays($item->created_at)+1;
                 $userDetails[] = [
                     'id' =>$item->id,
                     'name' => $item->name,
@@ -98,5 +98,49 @@ class LeadController extends Controller
         } catch (\Exception $e) {
             return response()->json(['error' => 'failed', $e->getMessage()], 500);
         }
+    }
+    public function lead_update(Request $request,$id)
+    {
+        try {
+            // Validate the request data
+            $cartItem = Lead::findOrFail($id);
+            $request->validate([
+                // 'name' => 'required|string|max:255',
+                'phone' => 'required|max:10|min:10|unique:lead,phone,'. $cartItem->id,
+                // 'password' => 'required|string|min:8',
+            ]);
+            
+            // update a exist user
+            $cartItem->comment = $request->input('comment');
+            $cartItem->name = $request->input('name');
+            $cartItem->phone = $request->input('phone');
+            $cartItem->email = $request->input('email');
+            $cartItem->platform = $request->input('platform');
+            $cartItem->address = $request->input('address');
+            $cartItem->websiteDetails = $request->input('websiteDetails');
+            $cartItem->projectDetails = $request->input('projectDetails');
+            $cartItem->interestedServices = $request->input('interestedServices');
+            $cartItem->servicesTaken = $request->input('servicesTaken');
+            $cartItem->group = $request->input('group');
+            $cartItem->tags = $request->input('tags');
+            $cartItem->category = $request->input('category');
+            $cartItem->save();
+            return response()->json(['message' => 'lead update successfully',], 201);
+        } catch (ValidationException $e) {
+            return response()->json(['error' => $e->validator->errors()->first()], 422);
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Registration failed', $e->getMessage()], 500);
+        }
+    }
+    public function lead_delete($id)
+    {
+        $cartItem = lead::find($id);
+
+        if (!$cartItem) {
+            return response()->json(['error' => 'Item not found'], 404);
+        }
+        $cartItem->delete();
+        // $updatedCart = $this->getUpdatedCartData();
+        return response()->json(['msg' => 'Item deleted successfully'], 404);
     }
 }
