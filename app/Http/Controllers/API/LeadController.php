@@ -51,7 +51,9 @@ class LeadController extends Controller
     public function all_lead()
     {
         try {
-            $users = Lead::all();
+            // $users = Lead::all('order_by date desc');
+            $users = Lead::orderBy('created_at', 'desc')->get();
+  
             return response()->json(['leads' => $users]);
         } catch (\Exception $e) {
             return response()->json(['error' => 'Registration failed', $e->getMessage()], 500);
