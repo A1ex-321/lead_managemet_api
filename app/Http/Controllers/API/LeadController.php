@@ -80,6 +80,9 @@ class LeadController extends Controller
                     'category' => $item->category
                 ];
             }
+            usort($userDetails, function ($a, $b) {
+                return $b['age'] - $a['age'];
+            });
             $perPage = count($userDetails);
             $currentPage = LengthAwarePaginator::resolveCurrentPage();
             $pagedData = array_slice($userDetails, ($currentPage - 1) * $perPage, $perPage);
