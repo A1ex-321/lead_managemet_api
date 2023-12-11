@@ -51,7 +51,7 @@ class LeadController extends Controller
     public function all_lead()
     {
         try {
-            $users = Lead::paginate(5);
+            $users = Lead::all();
             return response()->json(['leads' => $users]);
         } catch (\Exception $e) {
             return response()->json(['error' => 'Registration failed', $e->getMessage()], 500);
@@ -125,7 +125,7 @@ class LeadController extends Controller
         } catch (ValidationException $e) {
             return response()->json(['error' => $e->validator->errors()->first()], 422);
         } catch (\Exception $e) {
-            return response()->json(['error' => 'Registration failed', $e->getMessage()], 500);
+            return response()->json(['error' => 'update failed', $e->getMessage()], 500);
         }
     }
     public function lead_delete($id)
@@ -133,10 +133,10 @@ class LeadController extends Controller
         $cartItem = lead::find($id);
 
         if (!$cartItem) {
-            return response()->json(['error' => 'Item not found'], 404);
+            return response()->json(['error' => 'lead not found'], 404);
         }
         $cartItem->delete();
-        return response()->json(['msg' => 'Item deleted successfully'], 404);
+        return response()->json(['msg' => 'lead deleted successfully'], 404);
     }
     public function search(Request $request)
     {
