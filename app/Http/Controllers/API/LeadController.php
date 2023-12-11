@@ -81,7 +81,7 @@ class LeadController extends Controller
                 ];
             }
             usort($userDetails, function ($a, $b) {
-                return $b['age'] - $a['age'];
+                return $a['age'] - $b['age'];
             });
             $perPage = count($userDetails);
             $currentPage = LengthAwarePaginator::resolveCurrentPage();
