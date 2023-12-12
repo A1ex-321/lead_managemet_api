@@ -16,7 +16,8 @@ class CreateCommentsTable extends Migration
         Schema::create('comments', function (Blueprint $table) {
             $table->id(); // Auto-incremental primary key
             $table->unsignedBigInteger('lead_id'); // Foreign key referencing leads table
-            $table->text('comment'); // Comment column
+            $table->text('comment'); 
+            $table->string('postedOn');
 
             // Define foreign key constraint
             $table->foreign('lead_id')->references('id')->on('lead')->onDelete('cascade');

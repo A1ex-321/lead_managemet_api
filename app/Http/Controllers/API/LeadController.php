@@ -170,22 +170,16 @@ class LeadController extends Controller
             $request->validate([
                 'lead_id' => 'required',
             ]);
-
             $user = comments::create([
                 'comment' => $request->input('comment'),
                 'lead_id' => $request->input('lead_id'),
                 'postedOn' => $request->input('postedOn'),
-
             ]);
-
-
-            Log::info('date currentAPI Request: ' . json_encode($user));
-
+            // Log::info('date currentAPI Request: ' . json_encode($user));
             $lead = lead::where('id', $user->lead_id)->first();
             $comments = comments::where('lead_id', $user->lead_id)->orderBy('created_at', 'asc')->get();
-
             foreach ($comments as $item) {
-                $userDetails[] = [
+                $comment[] = [
                     'id' => $lead->id,
                     'userName' => $lead->name,
                     'postedOn' => $item->postedOn,
@@ -194,7 +188,7 @@ class LeadController extends Controller
                     'userPic' => 'https://img.freepik.com/free-psd/3d-illustration-human-avatar-profile_23-2150671132.jpg?w=740&t=st=1702363051~exp=1702363651~hmac=c72204cd50f9532760a676be0f9407cd87bb69c00645202763974ea861f1e88d'
                 ];
             }
-            return response()->json(['message' => 'message created successfully', 'comments' => $userDetails], 201);
+            return response()->json(['message' => 'message created successfully', 'comments' => $comment], 201);
         } catch (ValidationException $e) {
             return response()->json(['error' => $e->validator->errors()->first()], 422);
         } catch (\Exception $e) {
@@ -210,7 +204,6 @@ class LeadController extends Controller
             $lead->is_shedule = $request->input('is_shedule');
             $lead->date_shedule = $request->input('date_shedule');
             Log::info('date currentAPI Request: ' . json_encode($request->input('date_shedule')));
-
             $lead->save();
             return response()->json(['message' => 'update created successfully', 'comments' => $lead], 201);
         } catch (ValidationException $e) {
