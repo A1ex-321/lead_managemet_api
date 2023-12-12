@@ -175,7 +175,7 @@ class LeadController extends Controller
                 'lead_id' => $request->input('lead_id'),
             ]);
             $lead = lead::where('id', $user->lead_id)->first();
-            $comments = comments::where('lead_id', $user->lead_id)->orderBy('created_at', 'desc')->get();
+            $comments = comments::where('lead_id', $user->lead_id)->orderBy('created_at', 'asc')->get();
             // Log::info('date currentAPI Request: ' . json_encode($lead));
             // Log::info('date currentAPI Request: ' . json_encode($comments));
             foreach ($comments as $item) {
