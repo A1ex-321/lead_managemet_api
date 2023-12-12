@@ -54,12 +54,12 @@ class LeadController extends Controller
     public function all_lead()
     {
         try {
-            // $users = Lead::orderBy('created_at', 'desc')->get();
-            $userscount = Lead::where('is_shedule', '0')->get()->count();
-            $users = Lead::where('is_shedule', '0')->get();
+             $users = Lead::orderBy('created_at', 'desc')->get();
+            // $userscount = Lead::where('is_shedule', '0')->get()->count();
+            // $users = Lead::where('is_shedule', '0')->get();
 
 
-            return response()->json(['leads' => $users,'userscount' => $userscount]);
+            return response()->json(['leads' => $users,'userscount' => '']);
         } catch (\Exception $e) {
             return response()->json(['error' => 'failed', $e->getMessage()], 500);
         }
