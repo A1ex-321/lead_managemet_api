@@ -11,11 +11,10 @@ class Comments extends Model
     protected $table = 'comments';
 
     protected $fillable = [
-        'lead_id','comment',
+        'lead_id', 'comment', 'postedOn',
     ];
     public function leads()
     {
         return $this->belongsTo(Lead::class, 'id');
     }
-
 }
