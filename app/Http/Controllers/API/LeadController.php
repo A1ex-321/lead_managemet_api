@@ -54,9 +54,12 @@ class LeadController extends Controller
     public function all_lead()
     {
         try {
-            $users = Lead::orderBy('created_at', 'desc')->get();
+            // $users = Lead::orderBy('created_at', 'desc')->get();
+            $userscount = Lead::where('is_shedule', '0')->get()->count();
+            $users = Lead::where('is_shedule', '0')->get();
 
-            return response()->json(['leads' => $users]);
+
+            return response()->json(['leads' => $users,'userscount' => $userscount]);
         } catch (\Exception $e) {
             return response()->json(['error' => 'failed', $e->getMessage()], 500);
         }
@@ -64,8 +67,10 @@ class LeadController extends Controller
     public function single_lead($id)
     {
         try {
-            $cartItem = Lead::find($id);
-            return response()->json(['leads' => $cartItem]);
+            // $lead = Lead::find($id)->with('leads');
+            $lead = Lead::where("id", $id)->with('comments')
+        ->get();
+            return response()->json(['leads' => $lead]);
         } catch (\Exception $e) {
             return response()->json(['error' => 'Registration failed', $e->getMessage()], 500);
         }
@@ -195,9 +200,36 @@ class LeadController extends Controller
             return response()->json(['error' => ' failed', $e->getMessage()], 500);
         }
     }
+    public function schedule_date_send(Request $request, $id)
+    {
+        try {
+            $request->validate([
+                'is_shedule' => 'required',
+                'date_shedule' => 'required',
+
+            ]);
+            // $is_shedule = $request->input('is_shedule');
+            // $is_date= $request->input('is_shedule');
+            $lead = lead::where('id', $id)->first();
+            $lead->is_shedule = $request->input('is_shedule');
+            $lead->date_shedule = $request->input('date_shedule');
+            // Log::info('date currentAPI Request: ' . json_encode($request->input('date_shedule')));
+            $lead->save();
+            return response()->json(['message' => 'update successfully', 'comments' => $lead], 201);
+        } catch (ValidationException $e) {
+            return response()->json(['error' => $e->validator->errors()->first()], 422);
+        } catch (\Exception $e) {
+            return response()->json(['error' => ' failed', $e->getMessage()], 500);
+        }
+    }
     public function schedule_date(Request $request, $id)
     {
         try {
+            $request->validate([
+                'is_shedule' => 'required',
+                'date_shedule' => 'required',
+
+            ]);
             // $is_shedule = $request->input('is_shedule');
             // $is_date= $request->input('is_shedule');
             $lead = lead::where('id', $id)->first();
