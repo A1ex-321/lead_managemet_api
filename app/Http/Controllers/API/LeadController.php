@@ -162,26 +162,36 @@ class LeadController extends Controller
             return response()->json(['error' => 'Registration failed', $e->getMessage()], 500);
         }
     }
-    
+
     public function message_create(Request $request)
     {
         try {
-
+            // Validate the request data
+            $request->validate([
+                'lead_id' => 'required',
+            ]);
             $user = comments::create([
                 'comment' => $request->input('comment'),
                 'lead_id' => $request->input('lead_id'),
             ]);
-            $carbonDate = Carbon::parse($user->created_at);
-            $formattedDate = $carbonDate->format('Y-m-d H:i:s');
             $lead = lead::where('id', $user->lead_id)->first();
-            $response = [
-                'comment_id' => $user->id,
-                'postedOn' => $formattedDate,
-                'text' => $user->comment,
-                'id' => $lead->id,
-                'userName' => $lead->name,
-            ];
-            return response()->json(['message' => 'message created successfully', 'user'=>$response], 201);
+            $comments = comments::where('lead_id', $user->lead_id)->orderBy('created_at', 'desc')->get();
+            // Log::info('date currentAPI Request: ' . json_encode($lead));
+            // Log::info('date currentAPI Request: ' . json_encode($comments));
+            foreach ($comments as $item) {
+                $carbonDate = Carbon::parse($item->created_at);
+                $formattedDate = $carbonDate->format('Y-m-d H:i:s');
+                $userDetails[] = [
+                    'id' => $lead->id,
+                    'userName' => $lead->name,
+                    'postedOn' => $formattedDate,
+                    'text' => $item->comment,
+                    'comment_id' => $item->id,
+                ];
+            }
+            return response()->json(['message' => 'message created successfully', 'comments' => $userDetails], 201);
+        } catch (ValidationException $e) {
+            return response()->json(['error' => $e->validator->errors()->first()], 422);
         } catch (\Exception $e) {
             return response()->json(['error' => ' failed', $e->getMessage()], 500);
         }
