@@ -9,11 +9,14 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Lead;
+use App\Models\Comments;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Http\Response;
+
 
 class LeadController extends Controller
 {
@@ -45,18 +48,17 @@ class LeadController extends Controller
         } catch (ValidationException $e) {
             return response()->json(['error' => $e->validator->errors()->first()], 422);
         } catch (\Exception $e) {
-            return response()->json(['error' => 'Registration failed', $e->getMessage()], 500);
+            return response()->json(['error' => ' failed', $e->getMessage()], 500);
         }
     }
     public function all_lead()
     {
         try {
-            // $users = Lead::all('order_by date desc');
             $users = Lead::orderBy('created_at', 'desc')->get();
-  
+
             return response()->json(['leads' => $users]);
         } catch (\Exception $e) {
-            return response()->json(['error' => 'Registration failed', $e->getMessage()], 500);
+            return response()->json(['error' => 'failed', $e->getMessage()], 500);
         }
     }
     public function single_lead($id)
@@ -90,7 +92,6 @@ class LeadController extends Controller
             $pagedData = array_slice($userDetails, ($currentPage - 1) * $perPage, $perPage);
             $usersPaginated = new LengthAwarePaginator($pagedData, count($userDetails), $perPage);
             $usersPaginated->setPath(request()->url());
-            // Log::info('date aaaaaAPI Request: ' . json_encode($userDetails));
             // Log::info('date currentAPI Request: ' . json_encode($date));
             return response()->json(['leads' => $usersPaginated]);
         } catch (\Exception $e) {
@@ -103,9 +104,7 @@ class LeadController extends Controller
             // Validate the request data
             $cartItem = Lead::findOrFail($id);
             $request->validate([
-                // 'name' => 'required|string|max:255',
                 'phone' => 'required|max:10|min:10|unique:lead,phone,' . $cartItem->id,
-                // 'password' => 'required|string|min:8',
             ]);
 
             // update a exist user
@@ -161,6 +160,30 @@ class LeadController extends Controller
             return response()->json(['error' => $e->validator->errors()->first()], 422);
         } catch (\Exception $e) {
             return response()->json(['error' => 'Registration failed', $e->getMessage()], 500);
+        }
+    }
+    
+    public function message_create(Request $request)
+    {
+        try {
+
+            $user = comments::create([
+                'comment' => $request->input('comment'),
+                'lead_id' => $request->input('lead_id'),
+            ]);
+            $carbonDate = Carbon::parse($user->created_at);
+            $formattedDate = $carbonDate->format('Y-m-d H:i:s');
+            $lead = lead::where('id', $user->lead_id)->first();
+            $response = [
+                'comment_id' => $user->id,
+                'postedOn' => $formattedDate,
+                'text' => $user->comment,
+                'id' => $lead->id,
+                'userName' => $lead->name,
+            ];
+            return response()->json(['message' => 'message created successfully', 'user'=>$response], 201);
+        } catch (\Exception $e) {
+            return response()->json(['error' => ' failed', $e->getMessage()], 500);
         }
     }
 }

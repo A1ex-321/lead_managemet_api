@@ -13,4 +13,8 @@ class Lead extends Model
     protected $fillable = [
         'comment','name','phone','email','platform','address','websiteDetails','projectDetails','interestedServices','servicesTaken','group','tags','category'
     ];
+    public function comment()
+    {
+        return $this->hasMany(Comments::class, 'lead_id');
+    }
 }
