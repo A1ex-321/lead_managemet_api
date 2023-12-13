@@ -23,7 +23,6 @@ class LeadController extends Controller
     public function lead_create(Request $request)
     {
         try {
-            // Validate the request data
             $request->validate([
                 'phone' => 'required|max:10|min:10|unique:lead,phone',
             ]);
@@ -67,18 +66,12 @@ class LeadController extends Controller
     public function single_lead($id)
     {
         try {
-            // $lead = Lead::find($id)->with('leads');
             $lead = Lead::where("id", $id)->with(['comments' => function ($query) {
                 $query->select('*');
             }])
                 ->select('*')
                 ->first();
 
-            // $cartItems = CartModel::where('session_id', $sessionId)->with(['product' => function ($query) {
-            //     $query->select('id', 'name', 'price', 'description', 'price', 'image');
-            // }])
-            //     ->select('id', 'product_id', 'quantity', 'total')
-            //     ->get();
             return response()->json(['leads' => $lead]);
         } catch (\Exception $e) {
             return response()->json(['error' => 'Registration failed', $e->getMessage()], 500);
@@ -106,7 +99,6 @@ class LeadController extends Controller
             $pagedData = array_slice($userDetails, ($currentPage - 1) * $perPage, $perPage);
             $usersPaginated = new LengthAwarePaginator($pagedData, count($userDetails), $perPage);
             $usersPaginated->setPath(request()->url());
-            // Log::info('date currentAPI Request: ' . json_encode($date));
             return response()->json(['leads' => $usersPaginated]);
         } catch (\Exception $e) {
             return response()->json(['error' => 'failed', $e->getMessage()], 500);
