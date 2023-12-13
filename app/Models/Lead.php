@@ -11,7 +11,7 @@ class Lead extends Model
     protected $table = 'lead';
 
     protected $fillable = [
-        'comment','name','phone','email','platform','address','websiteDetails','projectDetails','interestedServices','servicesTaken','group','tags','category'
+        'comment','name','phone','email','platform','address','websiteDetails','projectDetails','interestedServices','servicesTaken','group','tags','category','is_shedule','date_shedule'
     ];
     public function comments()
     {

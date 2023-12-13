@@ -13,7 +13,7 @@ class Comments extends Model
     protected $fillable = [
         'lead_id', 'comment', 'postedOn',
     ];
-    public function leads()
+    public function lead()
     {
         return $this->belongsTo(Lead::class, 'id');
     }

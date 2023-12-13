@@ -27,7 +27,11 @@ Route::post('/lead_update/{id}', [LeadController::class, 'lead_update']);
 Route::get('/lead_delete/{id}', [LeadController::class, 'lead_delete']);
 Route::get('/search', [LeadController::class, 'search']);
 Route::post('/comments', [LeadController::class, 'message_create']);
-Route::get('/date_shedule_send/{id}', [LeadController::class, 'schedule_date']);
+Route::get('/date_shedule/{id}', [LeadController::class, 'date_shedule_send']);
+Route::get('/shedule_date', [LeadController::class, 'shedule_date']);
+Route::get('/message_get/{id}', [LeadController::class, 'message_get']);
+
+
 
 
 
