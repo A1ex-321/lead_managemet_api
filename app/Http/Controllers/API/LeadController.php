@@ -54,12 +54,12 @@ class LeadController extends Controller
     public function all_lead()
     {
         try {
-             $users = Lead::orderBy('created_at', 'desc')->get();
-            // $userscount = Lead::where('is_shedule', '0')->get()->count();
-            // $users = Lead::where('is_shedule', '0')->get();
+            $this->shedule_date();
+            $users = Lead::orderBy('created_at', 'desc')->get();
+            $userscount = Lead::where('is_shedule', '0')->get()->count();
+            $users = Lead::where('is_shedule', '0')->orderBy('created_at', 'desc')->get();
 
-
-            return response()->json(['leads' => $users,'userscount' => '']);
+            return response()->json(['leads' => $users, 'userscount' => $userscount]);
         } catch (\Exception $e) {
             return response()->json(['error' => 'failed', $e->getMessage()], 500);
         }
@@ -68,8 +68,17 @@ class LeadController extends Controller
     {
         try {
             // $lead = Lead::find($id)->with('leads');
-            $lead = Lead::where("id", $id)->with('comments')
-        ->get();
+            $lead = Lead::where("id", $id)->with(['comments' => function ($query) {
+                $query->select('*');
+            }])
+                ->select('*')
+                ->first();
+
+            // $cartItems = CartModel::where('session_id', $sessionId)->with(['product' => function ($query) {
+            //     $query->select('id', 'name', 'price', 'description', 'price', 'image');
+            // }])
+            //     ->select('id', 'product_id', 'quantity', 'total')
+            //     ->get();
             return response()->json(['leads' => $lead]);
         } catch (\Exception $e) {
             return response()->json(['error' => 'Registration failed', $e->getMessage()], 500);
@@ -188,7 +197,7 @@ class LeadController extends Controller
                     'id' => $lead->id,
                     'userName' => $lead->name,
                     'postedOn' => $item->postedOn,
-                    'text' => $item->comment,
+                    'comment' => $item->comment,
                     'comment_id' => $item->id,
                     'userPic' => 'https://img.freepik.com/free-psd/3d-illustration-human-avatar-profile_23-2150671132.jpg?w=740&t=st=1702363051~exp=1702363651~hmac=c72204cd50f9532760a676be0f9407cd87bb69c00645202763974ea861f1e88d'
                 ];
@@ -208,12 +217,11 @@ class LeadController extends Controller
                 'date_shedule' => 'required',
 
             ]);
-            // $is_shedule = $request->input('is_shedule');
-            // $is_date= $request->input('is_shedule');
+
             $lead = lead::where('id', $id)->first();
             $lead->is_shedule = $request->input('is_shedule');
             $lead->date_shedule = $request->input('date_shedule');
-            // Log::info('date currentAPI Request: ' . json_encode($request->input('date_shedule')));
+
             $lead->save();
             return response()->json(['message' => 'update successfully', 'comments' => $lead], 201);
         } catch (ValidationException $e) {
@@ -222,26 +230,97 @@ class LeadController extends Controller
             return response()->json(['error' => ' failed', $e->getMessage()], 500);
         }
     }
-    public function schedule_date(Request $request, $id)
+
+    public function shedule_date()
     {
         try {
-            $request->validate([
-                'is_shedule' => 'required',
-                'date_shedule' => 'required',
+            $update_shedule = Lead::where('is_shedule', '1')->get();
+            foreach ($update_shedule as $item) {
+                $shedule = Lead::where('id', $item->id)->where('is_shedule', '1')->get();
+                foreach ($shedule as $item) {
+                    $parsedDate = Carbon::createFromFormat('d/M/Y g:iA', $item->date_shedule);
+                    $daysDifference = Carbon::now()->timezone('Asia/Kolkata');
 
-            ]);
-            // $is_shedule = $request->input('is_shedule');
-            // $is_date= $request->input('is_shedule');
-            $lead = lead::where('id', $id)->first();
-            $lead->is_shedule = $request->input('is_shedule');
-            $lead->date_shedule = $request->input('date_shedule');
-            Log::info('date currentAPI Request: ' . json_encode($request->input('date_shedule')));
-            $lead->save();
-            return response()->json(['message' => 'update created successfully', 'comments' => $lead], 201);
-        } catch (ValidationException $e) {
-            return response()->json(['error' => $e->validator->errors()->first()], 422);
+                    $dateOnly = $daysDifference->toDateString();
+                    $hoursOnly = $daysDifference->format('h:i A');
+                    $hoursOnlyAM = $daysDifference->format('A');
+                    $minutesOnly = $daysDifference->minute;
+
+                    $dateOnlydb = $parsedDate->toDateString();
+                    $hoursOnlydb = $parsedDate->format('h:i A');
+                    $hoursOnlydbAM = $parsedDate->format('A');
+                    $minutesOnlydb = $parsedDate->minute;
+                    if (($dateOnly == $dateOnlydb) && ($hoursOnly == $hoursOnlydb)) {
+                        if ($minutesOnly > $minutesOnlydb) {
+                            $new_update = Lead::where('id', $item->id)->where('is_shedule', '1')->first();
+                            if ($new_update) {
+                                $new_update->is_shedule = 0;
+                                $new_update->save();
+                            }
+                            return response()->json(['message' => 'minu successfully', 'comments' => ''], 201);
+                        }
+                    }
+                    // To hours AM
+                    if (($hoursOnlydbAM == 'AM') && ($hoursOnlyAM == 'AM')) {
+                        if ($dateOnly == $dateOnlydb) {
+                            if (($hoursOnly > $hoursOnlydb) && ($minutesOnly > $minutesOnlydb))  {
+                                $new_update = Lead::where('id', $item->id)->where('is_shedule', '1')->first();
+                                if ($new_update) {
+                                    $new_update->is_shedule = 0;
+                                    $new_update->save();
+                                }                              
+                            }
+                        }
+                    }
+                    // To hours PM
+                    if (($hoursOnlydbAM == 'PM') && ($hoursOnlyAM == 'PM')) {
+                        if ($dateOnly == $dateOnlydb) {
+                            if (($hoursOnly > $hoursOnlydb) && ($minutesOnly >  $minutesOnlydb)) {
+                                $new_update = Lead::where('id', $item->id)->where('is_shedule', '1')->first();
+                                if ($new_update) {
+                                    $new_update->is_shedule = 0;
+                                    $new_update->save();
+                                }
+                            }
+                        }
+                    }
+                    //To day
+                    if ($dateOnly > $dateOnlydb) {
+                        $new_update = Lead::where('id', $item->id)->where('is_shedule', '1')->first();
+                        if ($new_update) {
+                            $new_update->is_shedule = 0;
+                            $new_update->save();
+                        }
+                    }
+                }
+            }
+            return response()->json(['leads' => '']);
         } catch (\Exception $e) {
-            return response()->json(['error' => ' failed', $e->getMessage()], 500);
+            return response()->json(['error' => 'shedule_date failed', $e->getMessage()], 500);
+        }
+    }
+    public function message_get(Request $request, $id)
+    {
+        try {
+
+            $lead = lead::where('id', $id)->first();
+            $comments = comments::where('lead_id', $lead->id)->orderBy('created_at', 'desc')->get();
+
+            foreach ($comments as $item) {
+                $comment[] = [
+                    'id' => $lead->id,
+                    'userPic' => 'https://img.freepik.com/free-psd/3d-illustration-human-avatar-profile_23-2150671132.jpg?w=740&t=st=1702363051~exp=1702363651~hmac=c72204cd50f9532760a676be0f9407cd87bb69c00645202763974ea861f1e88d',
+                    'userName' => $lead->name,
+                    'comment' => $item->comment,
+                    'postedOn' => $item->postedOn,
+                    'comment_id' => $item->id,
+
+                ];
+            }
+
+            return response()->json(['comment' => $comment]);
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'failed', $e->getMessage()], 500);
         }
     }
 }
