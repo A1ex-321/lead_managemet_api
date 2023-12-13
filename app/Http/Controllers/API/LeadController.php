@@ -206,20 +206,19 @@ class LeadController extends Controller
         try {
             $request->validate([
                 'is_shedule' => 'required',
-                'date_shedule' => 'required',
+                'date_shedule' => 'required|date_format:d/M/Y g:iA',
             ]);
 
             $date = $request->input('date_shedule');
-            $parsedDate = Carbon::createFromFormat('d/M/Y g:iA', $date);
-            $dateOnlyfu = $parsedDate->toDateString();
-            $hoursOnlyfu = $parsedDate->format('h');
-            $minutesOnlyfu = $parsedDate->minute;
-            $currentDateTime = Carbon::now()->timezone('Asia/Kolkata');
-            $dateOnly = $currentDateTime->toDateString();
-            $hoursOnly = $currentDateTime->format('h');
-            $minutesOnly = $currentDateTime->minute;
-            if (($dateOnly<$dateOnlyfu) && ($hoursOnly<$hoursOnlyfu) && ($minutesOnly<$minutesOnlyfu)) {
-                return response()->json(['error' => 'Please enter a future date and time.'], 201);
+
+            $timeZone = new \DateTimeZone('Asia/Kolkata'); 
+
+            $dateTime = \DateTime::createFromFormat('d/M/Y g:iA', $date, $timeZone);
+
+            $currentDateTime = new \DateTime('now', $timeZone);
+
+            if ($dateTime && $dateTime < $currentDateTime) {
+                return response()->json(['error' => 'Please enter a future date and time.'], 422);
             }
 
             $lead = Lead::where('id', $id)->first();
@@ -227,7 +226,7 @@ class LeadController extends Controller
             $lead->date_shedule = $date;
             $lead->save();
 
-            return response()->json(['message' => 'Update successful', 'data' => $lead], 201);
+            return response()->json(['message' => 'Lead scheduled', 'data' => $lead], 201);
         } catch (ValidationException $e) {
             return response()->json(['error' => $e->validator->errors()->first()], 422);
         } catch (\Exception $e) {
