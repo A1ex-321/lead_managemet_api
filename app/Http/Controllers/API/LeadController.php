@@ -207,19 +207,31 @@ class LeadController extends Controller
             $request->validate([
                 'is_shedule' => 'required',
                 'date_shedule' => 'required',
-
             ]);
 
-            $lead = lead::where('id', $id)->first();
-            $lead->is_shedule = $request->input('is_shedule');
-            $lead->date_shedule = $request->input('date_shedule');
+            $date = $request->input('date_shedule');
+            $parsedDate = Carbon::createFromFormat('d/M/Y g:iA', $date);
+            $dateOnlyfu = $parsedDate->toDateString();
+            $hoursOnlyfu = $parsedDate->format('h');
+            $minutesOnlyfu = $parsedDate->minute;
+            $currentDateTime = Carbon::now()->timezone('Asia/Kolkata');
+            $dateOnly = $currentDateTime->toDateString();
+            $hoursOnly = $currentDateTime->format('h');
+            $minutesOnly = $currentDateTime->minute;
+            if (($dateOnly<$dateOnlyfu) && ($hoursOnly<$hoursOnlyfu) && ($minutesOnly<$minutesOnlyfu)) {
+                return response()->json(['error' => 'Please enter a future date and time.'], 201);
+            }
 
+            $lead = Lead::where('id', $id)->first();
+            $lead->is_shedule = $request->input('is_shedule');
+            $lead->date_shedule = $date;
             $lead->save();
-            return response()->json(['message' => 'update successfully', 'comments' => $lead], 201);
+
+            return response()->json(['message' => 'Update successful', 'data' => $lead], 201);
         } catch (ValidationException $e) {
             return response()->json(['error' => $e->validator->errors()->first()], 422);
         } catch (\Exception $e) {
-            return response()->json(['error' => ' failed', $e->getMessage()], 500);
+            return response()->json(['error' => 'Update failed', 'message' => $e->getMessage()], 500);
         }
     }
 
@@ -232,35 +244,48 @@ class LeadController extends Controller
                 foreach ($shedule as $item) {
                     $parsedDate = Carbon::createFromFormat('d/M/Y g:iA', $item->date_shedule);
                     $daysDifference = Carbon::now()->timezone('Asia/Kolkata');
-
                     $dateOnly = $daysDifference->toDateString();
-                    $hoursOnly = $daysDifference->format('h:i A');
+                    $hoursOnly = $daysDifference->format('h');
                     $hoursOnlyAM = $daysDifference->format('A');
                     $minutesOnly = $daysDifference->minute;
 
                     $dateOnlydb = $parsedDate->toDateString();
-                    $hoursOnlydb = $parsedDate->format('h:i A');
+                    $hoursOnlydb = $parsedDate->format('h');
                     $hoursOnlydbAM = $parsedDate->format('A');
                     $minutesOnlydb = $parsedDate->minute;
-                    if (($dateOnly == $dateOnlydb) && ($hoursOnly == $hoursOnlydb)) {
-                        if ($minutesOnly > $minutesOnlydb) {
-                            $new_update = Lead::where('id', $item->id)->where('is_shedule', '1')->first();
-                            if ($new_update) {
-                                $new_update->is_shedule = 0;
-                                $new_update->save();
+                    // To minute AM
+                    if (($hoursOnlydbAM == 'AM') && ($hoursOnlyAM == 'AM')) {
+                        if (($dateOnly == $dateOnlydb) && ($hoursOnly == $hoursOnlydb)) {
+                            if ($minutesOnly > $minutesOnlydb) {
+                                $new_update = Lead::where('id', $item->id)->where('is_shedule', '1')->first();
+                                if ($new_update) {
+                                    $new_update->is_shedule = 0;
+                                    $new_update->save();
+                                }
                             }
-                            return response()->json(['message' => 'minu successfully', 'comments' => ''], 201);
+                        }
+                    }
+                    // To minute PM
+                    if (($hoursOnlydbAM == 'PM') && ($hoursOnlyAM == 'PM')) {
+                        if (($dateOnly == $dateOnlydb) && ($hoursOnly == $hoursOnlydb)) {
+                            if ($minutesOnly > $minutesOnlydb) {
+                                $new_update = Lead::where('id', $item->id)->where('is_shedule', '1')->first();
+                                if ($new_update) {
+                                    $new_update->is_shedule = 0;
+                                    $new_update->save();
+                                }
+                            }
                         }
                     }
                     // To hours AM
                     if (($hoursOnlydbAM == 'AM') && ($hoursOnlyAM == 'AM')) {
                         if ($dateOnly == $dateOnlydb) {
-                            if (($hoursOnly > $hoursOnlydb) && ($minutesOnly > $minutesOnlydb))  {
+                            if (($hoursOnly > $hoursOnlydb) && ($minutesOnly > $minutesOnlydb)) {
                                 $new_update = Lead::where('id', $item->id)->where('is_shedule', '1')->first();
                                 if ($new_update) {
                                     $new_update->is_shedule = 0;
                                     $new_update->save();
-                                }                              
+                                }
                             }
                         }
                     }
@@ -286,7 +311,7 @@ class LeadController extends Controller
                     }
                 }
             }
-            return response()->json(['leads' => '']);
+            return response()->json(['leads' => $update_shedule]);
         } catch (\Exception $e) {
             return response()->json(['error' => 'shedule_date failed', $e->getMessage()], 500);
         }
