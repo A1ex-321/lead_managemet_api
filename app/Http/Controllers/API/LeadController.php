@@ -69,9 +69,11 @@ class LeadController extends Controller
             $lead = Lead::where("id", $id)->with(['comments' => function ($query) {
                 $query->select('*');
             }])
-                ->select('*')
+                ->select('*')->where('is_shedule', '0')
                 ->first();
-
+            if ($lead == null) {
+                $lead = (object) [];
+            }
             return response()->json(['leads' => $lead]);
         } catch (\Exception $e) {
             return response()->json(['error' => 'Registration failed', $e->getMessage()], 500);
@@ -211,7 +213,7 @@ class LeadController extends Controller
 
             $date = $request->input('date_shedule');
 
-            $timeZone = new \DateTimeZone('Asia/Kolkata'); 
+            $timeZone = new \DateTimeZone('Asia/Kolkata');
 
             $dateTime = \DateTime::createFromFormat('d/M/Y g:iA', $date, $timeZone);
 
