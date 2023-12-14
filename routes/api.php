@@ -30,6 +30,8 @@ Route::post('/comments', [LeadController::class, 'message_create']);
 Route::get('/date_shedule/{id}', [LeadController::class, 'schedule_date_send']);
 Route::get('/shedule_date', [LeadController::class, 'shedule_date']);
 Route::get('/message_get/{id}', [LeadController::class, 'message_get']);
+Route::get('/scheduled_lead', [LeadController::class, 'scheduled_all_lead']);
+
 
 
 

@@ -58,7 +58,7 @@ class LeadController extends Controller
             $userscount = Lead::where('is_shedule', '0')->get()->count();
             $users = Lead::where('is_shedule', '0')->orderBy('created_at', 'desc')->get();
 
-            return response()->json(['leads' => $users, 'userscount' => $userscount]);
+            return response()->json(['leads' => $users, 'lead_count' => $userscount]);
         } catch (\Exception $e) {
             return response()->json(['error' => 'failed', $e->getMessage()], 500);
         }
@@ -337,6 +337,16 @@ class LeadController extends Controller
             }
 
             return response()->json(['comment' => $comment]);
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'failed', $e->getMessage()], 500);
+        }
+    }
+    public function scheduled_all_lead()
+    {
+        try {
+            $userscount = Lead::where('is_shedule', '1')->get()->count();
+            $users = Lead::where('is_shedule', '1')->orderBy('created_at', 'desc')->get();
+            return response()->json(['sheduleduser' => $users, 'sheduleddatecount' => $userscount]);
         } catch (\Exception $e) {
             return response()->json(['error' => 'failed', $e->getMessage()], 500);
         }
