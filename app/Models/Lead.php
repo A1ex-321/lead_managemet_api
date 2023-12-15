@@ -14,7 +14,7 @@ class Lead extends Model
     //     'comment','name','phone','email','platform','address','websiteDetails','projectDetails','interestedServices','servicesTaken','group','tags','category','is_shedule','date_shedule'
     // ];
     protected $fillable = [
-        'name','phone',
+        'name','phone','differencetotal'
     ];
     public function comments()
     {

@@ -1,6 +1,7 @@
 <?php
 
 namespace App\Http\Controllers\Api;
+
 use App\Http\Controllers\Api\stdClass;
 
 use Illuminate\Support\Facades\Hash;
@@ -55,10 +56,9 @@ class LeadController extends Controller
     {
         try {
             $this->shedule_date();
-            if ($request->has('category') && !$request->has('date')) {
+            if ($request->has('category') && !$request->filled('date')) {
                 try {
                     $request->validate([
-                        'category' => 'required',
                     ]);
                 } catch (ValidationException $e) {
                     return response()->json(['error' => $e->validator->errors()->first()], 422);
@@ -66,14 +66,13 @@ class LeadController extends Controller
 
                 $query = lead::query();
                 $searchTerm = $request->input('category');
-                $query->where('category', 'like', '%' . $searchTerm . '%');
+                $query->whereIn('category', $searchTerm);
                 $users = $query->get();
                 $leadCount = $users->count();
                 return response()->json(['leads' => $users, 'lead_count' => $leadCount]);
-            } else if ($request->has('date') && !$request->has('category')) {
+            } else if ($request->has('date') && !$request->filled('category')) {
                 try {
                     $request->validate([
-                        'date' => 'required',
                     ]);
                 } catch (ValidationException $e) {
                     return response()->json(['error' => $e->validator->errors()->first()], 422);
@@ -90,8 +89,7 @@ class LeadController extends Controller
             } else if ($request->has('date') && $request->has('category')) {
                 try {
                     $request->validate([
-                        'date' => 'required',
-                        'category' => 'required',
+                        'category' => 'required|array',
                     ]);
                 } catch (ValidationException $e) {
                     return response()->json(['error' => $e->validator->errors()->first()], 422);
@@ -102,7 +100,7 @@ class LeadController extends Controller
                 $formattedDate = Carbon::createFromFormat('d/m/Y', $date)->format('Y-m-d');
                 $category = $request->input('category');
                 $query->whereDate('created_at', '=', $formattedDate);
-                $query->where('category', '=', $category);
+                $query->whereIn('category', $category);
                 $users = $query->get();
                 $leadCount = $users->count();
                 return response()->json(['leads' => $users, 'lead_count' => $leadCount]);
@@ -374,14 +372,15 @@ class LeadController extends Controller
     {
         try {
             $userscount = Lead::where('is_shedule', '1')->get()->count();
-            $users = (object) [];
-
             $users = Lead::where('is_shedule', '1')->orderBy('created_at', 'desc')->get();
+            $scheduleItemsArray = [];
 
-            $users->each(function ($item) {
+            $users->each(function ($item) use (&$scheduleItemsArray) {
                 $shedule = Lead::where('id', $item->id)->where('is_shedule', '1')->get();
+                $dynamicObject = new \stdClass(); // Move outside the loop
+
                 foreach ($shedule as $scheduleItem) {
-                    $parsedDate = Carbon::createFromFormat('d/M/Y g:iA', $item->date_shedule);
+                    $parsedDate = Carbon::createFromFormat('d/M/Y g:iA', $scheduleItem->date_shedule);
                     $daysDifference = Carbon::now()->timezone('Asia/Kolkata');
                     $dateOnly = $daysDifference->toDateString();
                     $hoursOnly = $daysDifference->format('h');
@@ -392,42 +391,31 @@ class LeadController extends Controller
                     $hoursOnlydb = $parsedDate->format('h');
                     $hoursOnlydbAM = $parsedDate->format('A');
                     $minutesOnlydb = $parsedDate->minute;
-                    // Log::info('date currentAPI Request: ' . json_encode($dateOnly));
-                    // Log::info('date currentAPI Request: ' . json_encode($hoursOnly));
-                    // Log::info('date currentAPI Request: ' . json_encode($hoursOnlyAM));
-                    // Log::info('date currentAPI Request: ' . json_encode($minutesOnly));
 
-                    // Log::info('date currentAPI Request: ' . json_encode($dateOnlydb));
-                    // Log::info('date currentAPI Request: ' . json_encode($hoursOnlydb));
-                    // Log::info('date currentAPI Request: ' . json_encode($hoursOnlydbAM));
-                    // Log::info('date currentAPI Request: ' . json_encode($minutesOnlydb));
                     // To minute AM
-                    if (($hoursOnlydbAM == 'AM') && ($hoursOnlyAM == 'AM')) {
+                    if (($hoursOnlydbAM == 'PM') && ($hoursOnlyAM == 'PM')) {
                         if (($dateOnly == $dateOnlydb) && ($hoursOnly == $hoursOnlydb)) {
                             if ($minutesOnly <= $minutesOnlydb) {
                                 $totalMinutesDifference = $minutesOnlydb - $minutesOnly;
-                                Log::info('Total minutes difference: ' . $totalMinutesDifference);
-                                Log::info('Total minutes difference: ' . $item->id);
-                                $scheduleItem->differencetotal = $totalMinutesDifference;
-        
-                                // $new_update = Lead::where('id', $item->id)->where('is_shedule', '1')->first();
-                                // if ($new_update) {
-                                //     $new_update->is_shedule = 0;
-                                //     $new_update->save();
-                                // }
+
+                                // Add the totalMinutesDifference to the existing object
+                                $dynamicObject->staticProperty = $totalMinutesDifference;
+                                // $scheduleItem->total[] = $dynamicObject;
                             }
                         }
                     }
-        
-                    // ... (your existing code)
                 }
+                $scheduleItemsArray[] = $dynamicObject;
+
+                // Add the $dynamicObject to the array outside the loop
             });
-        
-            return response()->json(['sheduleduser' => $users, 'sheduleddatecount' => $userscount]);
+
+            return response()->json(['sheduleduser' => $users, 'sheduleddatecount' => $userscount, 'scheduleItemsArray' => $scheduleItemsArray]);
         } catch (\Exception $e) {
             return response()->json(['error' => 'failed', $e->getMessage()], 500);
         }
     }
+
     public function lead_category(Request $request, $id)
     {
         try {
