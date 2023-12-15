@@ -254,7 +254,7 @@ class LeadController extends Controller
 
             $lead = Lead::where('id', $id)->first();
             $lead->is_shedule = $request->input('is_shedule');
-            $lead->updated_at = $date;
+            $lead->date_shedule  = $date;
             $lead->save();
 
             return response()->json(['message' => 'Lead scheduled', 'data' => $lead], 201);
@@ -433,10 +433,11 @@ class LeadController extends Controller
                             }
                         }
                     }
-                    // if ($dateOnly < $dateOnlydb) {
-                        // $totaldays = $dateOnlydb - $dateOnly;
-                        // $dynamicObject->total = $totaldays . 'Day';
-                    // }
+                    if (($dateOnly < $dateOnlydb)) {
+
+                        $totald = $parsedDate->diffInDays($dateOnly);
+                        $dynamicObject->total = $totald . 'Day';
+                    }
                 }
                 $item->total = $dynamicObject;
                 return $item;
