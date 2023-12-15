@@ -10,8 +10,11 @@ class Lead extends Model
     use HasFactory;
     protected $table = 'lead';
 
+    // protected $fillable = [
+    //     'comment','name','phone','email','platform','address','websiteDetails','projectDetails','interestedServices','servicesTaken','group','tags','category','is_shedule','date_shedule'
+    // ];
     protected $fillable = [
-        'comment','name','phone','email','platform','address','websiteDetails','projectDetails','interestedServices','servicesTaken','group','tags','category','is_shedule','date_shedule'
+        'name','phone',
     ];
     public function comments()
     {

@@ -1,6 +1,7 @@
 <?php
 
 namespace App\Http\Controllers\Api;
+use App\Http\Controllers\Api\stdClass;
 
 use Illuminate\Support\Facades\Hash;
 
@@ -50,15 +51,67 @@ class LeadController extends Controller
             return response()->json(['error' => ' failed', $e->getMessage()], 500);
         }
     }
-    public function all_lead()
+    public function all_lead(Request $request)
     {
         try {
             $this->shedule_date();
-            $users = Lead::orderBy('created_at', 'desc')->get();
-            $userscount = Lead::where('is_shedule', '0')->get()->count();
-            $users = Lead::where('is_shedule', '0')->orderBy('created_at', 'desc')->get();
+            if ($request->has('category') && !$request->has('date')) {
+                try {
+                    $request->validate([
+                        'category' => 'required',
+                    ]);
+                } catch (ValidationException $e) {
+                    return response()->json(['error' => $e->validator->errors()->first()], 422);
+                }
 
-            return response()->json(['leads' => $users, 'lead_count' => $userscount]);
+                $query = lead::query();
+                $searchTerm = $request->input('category');
+                $query->where('category', 'like', '%' . $searchTerm . '%');
+                $users = $query->get();
+                $leadCount = $users->count();
+                return response()->json(['leads' => $users, 'lead_count' => $leadCount]);
+            } else if ($request->has('date') && !$request->has('category')) {
+                try {
+                    $request->validate([
+                        'date' => 'required',
+                    ]);
+                } catch (ValidationException $e) {
+                    return response()->json(['error' => $e->validator->errors()->first()], 422);
+                }
+
+                $query = lead::query();
+                $date = $request->input('date');
+                // ($query->created_at)
+                $formattedDate = Carbon::createFromFormat('d/m/Y', $date)->format('Y-m-d');
+                $query->whereDate('created_at', '=', $formattedDate);
+                $users = $query->get();
+                $leadCount = $users->count();
+                return response()->json(['leads' => $users, 'lead_count' => $leadCount]);
+            } else if ($request->has('date') && $request->has('category')) {
+                try {
+                    $request->validate([
+                        'date' => 'required',
+                        'category' => 'required',
+                    ]);
+                } catch (ValidationException $e) {
+                    return response()->json(['error' => $e->validator->errors()->first()], 422);
+                }
+
+                $query = lead::query();
+                $date = $request->input('date');
+                $formattedDate = Carbon::createFromFormat('d/m/Y', $date)->format('Y-m-d');
+                $category = $request->input('category');
+                $query->whereDate('created_at', '=', $formattedDate);
+                $query->where('category', '=', $category);
+                $users = $query->get();
+                $leadCount = $users->count();
+                return response()->json(['leads' => $users, 'lead_count' => $leadCount]);
+            } else {
+                $users = Lead::orderBy('created_at', 'desc')->get();
+                $userscount = Lead::where('is_shedule', '0')->get()->count();
+                $users = Lead::where('is_shedule', '0')->orderBy('created_at', 'desc')->get();
+                return response()->json(['leads' => $users, 'lead_count' => $userscount]);
+            }
         } catch (\Exception $e) {
             return response()->json(['error' => 'failed', $e->getMessage()], 500);
         }
@@ -147,30 +200,6 @@ class LeadController extends Controller
         $cartItem->delete();
         return response()->json(['msg' => 'lead deleted successfully'], 404);
     }
-    public function search(Request $request)
-    {
-        try {
-            $query = lead::query();
-
-            // Filter by username
-            if ($request->has('name')) {
-                $query->where('name', 'like', '%' . $request->input('name') . '%');
-            }
-
-            // Filter by phone number
-            if ($request->has('phone')) {
-                $query->where('phone', 'like', '%' . $request->input('phone') . '%');
-            }
-
-            $users = $query->get();
-            return response()->json(['users' => $users]);
-        } catch (ValidationException $e) {
-            return response()->json(['error' => $e->validator->errors()->first()], 422);
-        } catch (\Exception $e) {
-            return response()->json(['error' => 'Registration failed', $e->getMessage()], 500);
-        }
-    }
-
     public function message_create(Request $request)
     {
         try {
@@ -345,10 +374,75 @@ class LeadController extends Controller
     {
         try {
             $userscount = Lead::where('is_shedule', '1')->get()->count();
+            $users = (object) [];
+
             $users = Lead::where('is_shedule', '1')->orderBy('created_at', 'desc')->get();
+
+            $users->each(function ($item) {
+                $shedule = Lead::where('id', $item->id)->where('is_shedule', '1')->get();
+                foreach ($shedule as $scheduleItem) {
+                    $parsedDate = Carbon::createFromFormat('d/M/Y g:iA', $item->date_shedule);
+                    $daysDifference = Carbon::now()->timezone('Asia/Kolkata');
+                    $dateOnly = $daysDifference->toDateString();
+                    $hoursOnly = $daysDifference->format('h');
+                    $hoursOnlyAM = $daysDifference->format('A');
+                    $minutesOnly = $daysDifference->minute;
+
+                    $dateOnlydb = $parsedDate->toDateString();
+                    $hoursOnlydb = $parsedDate->format('h');
+                    $hoursOnlydbAM = $parsedDate->format('A');
+                    $minutesOnlydb = $parsedDate->minute;
+                    // Log::info('date currentAPI Request: ' . json_encode($dateOnly));
+                    // Log::info('date currentAPI Request: ' . json_encode($hoursOnly));
+                    // Log::info('date currentAPI Request: ' . json_encode($hoursOnlyAM));
+                    // Log::info('date currentAPI Request: ' . json_encode($minutesOnly));
+
+                    // Log::info('date currentAPI Request: ' . json_encode($dateOnlydb));
+                    // Log::info('date currentAPI Request: ' . json_encode($hoursOnlydb));
+                    // Log::info('date currentAPI Request: ' . json_encode($hoursOnlydbAM));
+                    // Log::info('date currentAPI Request: ' . json_encode($minutesOnlydb));
+                    // To minute AM
+                    if (($hoursOnlydbAM == 'AM') && ($hoursOnlyAM == 'AM')) {
+                        if (($dateOnly == $dateOnlydb) && ($hoursOnly == $hoursOnlydb)) {
+                            if ($minutesOnly <= $minutesOnlydb) {
+                                $totalMinutesDifference = $minutesOnlydb - $minutesOnly;
+                                Log::info('Total minutes difference: ' . $totalMinutesDifference);
+                                Log::info('Total minutes difference: ' . $item->id);
+                                $scheduleItem->differencetotal = $totalMinutesDifference;
+        
+                                // $new_update = Lead::where('id', $item->id)->where('is_shedule', '1')->first();
+                                // if ($new_update) {
+                                //     $new_update->is_shedule = 0;
+                                //     $new_update->save();
+                                // }
+                            }
+                        }
+                    }
+        
+                    // ... (your existing code)
+                }
+            });
+        
             return response()->json(['sheduleduser' => $users, 'sheduleddatecount' => $userscount]);
         } catch (\Exception $e) {
             return response()->json(['error' => 'failed', $e->getMessage()], 500);
+        }
+    }
+    public function lead_category(Request $request, $id)
+    {
+        try {
+            $request->validate([
+                'category' => 'required',
+            ]);
+            $category = Lead::where('id', $id)->first();
+            $category->category = $request->input('category');
+            $category->save();
+
+            return response()->json(['message' => 'Lead category added', 'categoy' => $category], 201);
+        } catch (ValidationException $e) {
+            return response()->json(['error' => $e->validator->errors()->first()], 422);
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Update failed', 'message' => $e->getMessage()], 500);
         }
     }
 }

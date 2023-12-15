@@ -25,12 +25,13 @@ Route::get('/singleleads/{id}', [LeadController::class, 'single_lead']);
 Route::get('/age', [LeadController::class, 'age']);
 Route::post('/lead_update/{id}', [LeadController::class, 'lead_update']);
 Route::get('/lead_delete/{id}', [LeadController::class, 'lead_delete']);
-Route::get('/search', [LeadController::class, 'search']);
 Route::post('/comments', [LeadController::class, 'message_create']);
 Route::get('/date_shedule/{id}', [LeadController::class, 'schedule_date_send']);
 Route::get('/shedule_date', [LeadController::class, 'shedule_date']);
 Route::get('/message_get/{id}', [LeadController::class, 'message_get']);
 Route::get('/scheduled_lead', [LeadController::class, 'scheduled_all_lead']);
+Route::post('/lead_category/{id}', [LeadController::class, 'lead_category']);
+
 
 
 
