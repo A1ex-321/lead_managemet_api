@@ -164,26 +164,26 @@ class LeadController extends Controller
     {
         try {
             // Validate the request data
-            $cartItem = Lead::findOrFail($id);
+            $leads = Lead::findOrFail($id);
             $request->validate([
-                'phone' => 'required|max:10|min:10|unique:lead,phone,' . $cartItem->id,
+                'phone' => 'required|max:10|min:10|unique:lead,phone,' . $leads->id,
             ]);
 
             // update a exist user
-            $cartItem->comment = $request->input('comment');
-            $cartItem->name = $request->input('name');
-            $cartItem->phone = $request->input('phone');
-            $cartItem->email = $request->input('email');
-            $cartItem->platform = $request->input('platform');
-            $cartItem->address = $request->input('address');
-            $cartItem->websiteDetails = $request->input('websiteDetails');
-            $cartItem->projectDetails = $request->input('projectDetails');
-            $cartItem->interestedServices = $request->input('interestedServices');
-            $cartItem->servicesTaken = $request->input('servicesTaken');
-            $cartItem->group = $request->input('group');
-            $cartItem->tags = $request->input('tags');
-            $cartItem->category = $request->input('category');
-            $cartItem->save();
+            $leads->comment = $request->input('comment');
+            $leads->name = $request->input('name');
+            $leads->phone = $request->input('phone');
+            $leads->email = $request->input('email');
+            $leads->platform = $request->input('platform');
+            $leads->address = $request->input('address');
+            $leads->websiteDetails = $request->input('websiteDetails');
+            $leads->projectDetails = $request->input('projectDetails');
+            $leads->interestedServices = $request->input('interestedServices');
+            $leads->servicesTaken = $request->input('servicesTaken');
+            $leads->group = $request->input('group');
+            $leads->tags = $request->input('tags');
+            $leads->category = $request->input('category');
+            $leads->save();
             return response()->json(['message' => 'lead update successfully',], 201);
         } catch (ValidationException $e) {
             return response()->json(['error' => $e->validator->errors()->first()], 422);
@@ -378,73 +378,75 @@ class LeadController extends Controller
             $users = Lead::where('is_shedule', '1')->orderBy('created_at', 'desc')->get();
             // $scheduleItemsArray = [];
 
-            $usersWithSchedule = $users->each(function ($item) {
-                $shedule = Lead::where('id', $item->id)->where('is_shedule', '1')->get();
-                // $scheduleItemsArray = [];
-                foreach ($shedule as $scheduleItem) {
-                    $dynamicObject = new \stdClass();
+            // $usersWithSchedule = $users->each(function ($item) {
+            //     $shedule = Lead::where('id', $item->id)->where('is_shedule', '1')->get();
+            // // Log::info('date currentAPI Request: ' . json_encode($shedule));
 
-                    $parsedDate = Carbon::createFromFormat('d/M/Y g:iA', $scheduleItem->date_shedule);
-                    $daysDifference = Carbon::now()->timezone('Asia/Kolkata');
-                    $dateOnly = $daysDifference->toDateString();
-                    $hoursOnly = $daysDifference->format('h');
-                    $hoursOnlyAM = $daysDifference->format('A');
-                    $minutesOnly = $daysDifference->minute;
+            //     // $scheduleItemsArray = [];
+            //     foreach ($shedule as $scheduleItem) {
+            //         $dynamicObject = new \stdClass();
 
-                    $dateOnlydb = $parsedDate->toDateString();
-                    $hoursOnlydb = $parsedDate->format('h');
-                    $hoursOnlydbAM = $parsedDate->format('A');
-                    $minutesOnlydb = $parsedDate->minute;
+            //         $parsedDate = Carbon::createFromFormat('d/M/Y g:iA', $scheduleItem->date_shedule);
 
-                    // To minutePM
-                    if (($hoursOnlydbAM == 'PM') && ($hoursOnlyAM == 'PM')) {
-                        if (($dateOnly == $dateOnlydb) && ($hoursOnly == $hoursOnlydb)) {
-                            if ($minutesOnly <= $minutesOnlydb) {
-                                $totalMinutesDifference = $minutesOnlydb - $minutesOnly;
-                                $dynamicObject->total = $totalMinutesDifference . 'Minute';
-                            }
-                        }
-                    }
-                    //to minute AM
-                    if (($hoursOnlydbAM == 'AM') && ($hoursOnlyAM == 'AM')) {
-                        if (($dateOnly == $dateOnlydb) && ($hoursOnly == $hoursOnlydb)) {
-                            if ($minutesOnly <= $minutesOnlydb) {
-                                $totalMinutesDifference = $minutesOnlydb - $minutesOnly;
-                                $dynamicObject->total = $totalMinutesDifference.'minute';
-                            }
-                        }
-                    }
-                    // To hours AM
-                    if (($hoursOnlydbAM == 'AM') && ($hoursOnlyAM == 'AM')) {
-                        if ($dateOnly == $dateOnlydb) {
-                            if (($hoursOnly < $hoursOnlydb) && ($minutesOnly <= $minutesOnlydb)) {
-                                $totalhours = $hoursOnlydb - $hoursOnly;
-                                $totalminutes = $minutesOnlydb - $minutesOnly;
-                                $dynamicObject->total = $totalhours . 'Hour' . ':' . $totalminutes . 'Minute';
-                            }
-                        }
-                    }
-                    // To hours PM
-                    if (($hoursOnlydbAM == 'PM') && ($hoursOnlyAM == 'PM')) {
-                        if ($dateOnly == $dateOnlydb) {
-                            if (($hoursOnly < $hoursOnlydb) && ($minutesOnly <= $minutesOnlydb)) {
-                                $totalhours = $hoursOnlydb - $hoursOnly;
-                                $totalminutes = $minutesOnlydb - $minutesOnly;
-                                $dynamicObject->total = $totalhours . 'Hour' . ':' . $totalminutes . 'Minute';
-                            }
-                        }
-                    }
-                    if (($dateOnly < $dateOnlydb)) {
+            //         $daysDifference = Carbon::now()->timezone('Asia/Kolkata');
 
-                        $totald = $parsedDate->diffInDays($dateOnly);
-                        $dynamicObject->total = $totald . 'Day';
-                    }
-                }
-                $item->total = $dynamicObject;
-                return $item;
-            });
+            //         $dateOnly = $daysDifference->toDateString();
+            //         $hoursOnly = $daysDifference->format('h');
+            //         $hoursOnlyAM = $daysDifference->format('A');
+            //         $minutesOnly = $daysDifference->minute;
+            //         $dateOnlydb = $parsedDate->toDateString();
+            //         $hoursOnlydb = $parsedDate->format('h');
+            //         $hoursOnlydbAM = $parsedDate->format('A');
+            //         $minutesOnlydb = $parsedDate->minute;
+            //         // To minutePM
+            //         if (($hoursOnlydbAM == 'PM') && ($hoursOnlyAM == 'PM')) {
+            //             if (($dateOnly == $dateOnlydb) && ($hoursOnly == $hoursOnlydb)) {
+            //                 if ($minutesOnly <= $minutesOnlydb) {
+            //                     $totalMinutesDifference = $minutesOnlydb - $minutesOnly;
+            //                     $dynamicObject->total = $totalMinutesDifference .' '.  'Minute';
+            //                 }
+            //             }
+            //         }
+            //         //to minute AM
+            //         if (($hoursOnlydbAM == 'AM') && ($hoursOnlyAM == 'AM')) {
+            //             if (($dateOnly == $dateOnlydb) && ($hoursOnly == $hoursOnlydb)) {
+            //                 if ($minutesOnly <= $minutesOnlydb) {
+            //                     $totalMinutesDifference = $minutesOnlydb - $minutesOnly;
+            //                     $dynamicObject->total = $totalMinutesDifference.'minute';
+            //                 }
+            //             }
+            //         }
+            //         // To hours AM
+            //         if (($hoursOnlydbAM == 'AM') && ($hoursOnlyAM == 'AM')) {
+            //             if ($dateOnly == $dateOnlydb) {
+            //                 if (($hoursOnly < $hoursOnlydb) && ($minutesOnly <= $minutesOnlydb)) {
+            //                     $totalhours = $hoursOnlydb - $hoursOnly;
+            //                     $totalminutes = $minutesOnlydb - $minutesOnly;
+            //                     $dynamicObject->total = $totalhours . ' ' .'Hour' . ':' . $totalminutes . 'Minute';
+            //                 }
+            //             }
+            //         }
+            //         // To hours PM
+            //         if (($hoursOnlydbAM == 'PM') && ($hoursOnlyAM == 'PM')) {
+            //             if ($dateOnly == $dateOnlydb) {
+            //                 if (($hoursOnly < $hoursOnlydb) && ($minutesOnly <= $minutesOnlydb)) {
+            //                     $totalhours = $hoursOnlydb - $hoursOnly;
+            //                     $totalminutes = $minutesOnlydb - $minutesOnly;
+            //                     $dynamicObject->total = $totalhours . 'Hour' . ':' . $totalminutes . 'Minute';
+            //                 }
+            //             }
+            //         }
+            //         if (($dateOnly < $dateOnlydb)) {
 
-            return response()->json(['sheduleduser' => $usersWithSchedule, 'sheduleddatecount' => $userscount]);
+            //             $totald = $parsedDate->diffInDays($dateOnly);
+            //             $dynamicObject->total = $totald . 'Day';
+            //         }
+            //     }
+            //     $item->total = $dynamicObject;
+            //     return $item;
+            // });
+
+            return response()->json(['sheduleduser' => $users, 'sheduleddatecount' => $userscount]);
         } catch (\Exception $e) {
             return response()->json(['error' => 'failed', $e->getMessage()], 500);
         }
