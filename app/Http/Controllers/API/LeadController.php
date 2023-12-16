@@ -70,7 +70,8 @@ class LeadController extends Controller
                 $users = $query->get();
                 $leadCount = $users->count();
                 return response()->json(['leads' => $users, 'lead_count' => $leadCount]);
-            } else if ($request->has('date') && !$request->filled('category')) {
+            } else if ($request->has('date') &&  empty($request->input('category'))) {
+
                 try {
                     $request->validate([]);
                 } catch (ValidationException $e) {
@@ -457,8 +458,8 @@ class LeadController extends Controller
             ]);
             $category = Lead::where('id', $id)->first();
             $category->category = $request->input('category');
+            $category->updated_at=now();
             $category->save();
-
             return response()->json(['message' => 'Lead category added', 'categoy' => $category], 201);
         } catch (ValidationException $e) {
             return response()->json(['error' => $e->validator->errors()->first()], 422);
