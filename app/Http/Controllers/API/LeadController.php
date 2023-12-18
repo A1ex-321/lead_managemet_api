@@ -287,7 +287,7 @@ class LeadController extends Controller
                     // To minute AM
                     if (($hoursOnlydbAM == 'AM') && ($hoursOnlyAM == 'AM')) {
                         if (($dateOnly == $dateOnlydb) && ($hoursOnly == $hoursOnlydb)) {
-                            if ($minutesOnly > $minutesOnlydb) {
+                            if ($minutesOnly >= $minutesOnlydb) {
                                 $new_update = Lead::where('id', $item->id)->where('is_shedule', '1')->first();
                                 if ($new_update) {
                                     $new_update->is_shedule = 0;
@@ -299,7 +299,7 @@ class LeadController extends Controller
                     // To minute PM
                     if (($hoursOnlydbAM == 'PM') && ($hoursOnlyAM == 'PM')) {
                         if (($dateOnly == $dateOnlydb) && ($hoursOnly == $hoursOnlydb)) {
-                            if ($minutesOnly > $minutesOnlydb) {
+                            if ($minutesOnly >= $minutesOnlydb) {
                                 $new_update = Lead::where('id', $item->id)->where('is_shedule', '1')->first();
                                 if ($new_update) {
                                     $new_update->is_shedule = 0;
@@ -311,7 +311,7 @@ class LeadController extends Controller
                     // To hours AM
                     if (($hoursOnlydbAM == 'AM') && ($hoursOnlyAM == 'AM')) {
                         if ($dateOnly == $dateOnlydb) {
-                            if (($hoursOnly > $hoursOnlydb) && ($minutesOnly > $minutesOnlydb)) {
+                            if (($hoursOnly >= $hoursOnlydb) && ($minutesOnly >= $minutesOnlydb)) {
                                 $new_update = Lead::where('id', $item->id)->where('is_shedule', '1')->first();
                                 if ($new_update) {
                                     $new_update->is_shedule = 0;
@@ -323,7 +323,7 @@ class LeadController extends Controller
                     // To hours PM
                     if (($hoursOnlydbAM == 'PM') && ($hoursOnlyAM == 'PM')) {
                         if ($dateOnly == $dateOnlydb) {
-                            if (($hoursOnly > $hoursOnlydb) && ($minutesOnly >  $minutesOnlydb)) {
+                            if (($hoursOnly >= $hoursOnlydb) && ($minutesOnly >=  $minutesOnlydb)) {
                                 $new_update = Lead::where('id', $item->id)->where('is_shedule', '1')->first();
                                 if ($new_update) {
                                     $new_update->is_shedule = 0;
