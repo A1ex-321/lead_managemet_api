@@ -31,6 +31,8 @@ Route::get('/shedule_date', [LeadController::class, 'shedule_date']);
 Route::get('/message_get/{id}', [LeadController::class, 'message_get']);
 Route::get('/scheduled_lead', [LeadController::class, 'scheduled_all_lead']);
 Route::post('/lead_category/{id}', [LeadController::class, 'lead_category']);
+Route::get('/sheduledsingleleads/{id}', [LeadController::class, 'sheduled_single_lead']);
+
 
 
 

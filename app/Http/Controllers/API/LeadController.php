@@ -91,8 +91,7 @@ class LeadController extends Controller
                 return response()->json(['leads' => $users, 'lead_count' => $leadCount]);
             } else if ($request->has('date') && $request->has('category')) {
                 try {
-                    $request->validate([
-                    ]);
+                    $request->validate([]);
                 } catch (ValidationException $e) {
                     return response()->json(['error' => $e->validator->errors()->first()], 422);
                 }
@@ -193,12 +192,12 @@ class LeadController extends Controller
     }
     public function lead_delete($id)
     {
-        $cartItem = lead::find($id);
+        $lead = lead::find($id);
 
-        if (!$cartItem) {
+        if (!$lead) {
             return response()->json(['error' => 'lead not found'], 404);
         }
-        $cartItem->delete();
+        $lead->delete();
         return response()->json(['msg' => 'lead deleted successfully'], 404);
     }
     public function message_create(Request $request)
@@ -371,86 +370,149 @@ class LeadController extends Controller
             return response()->json(['error' => 'failed', $e->getMessage()], 500);
         }
     }
-    public function scheduled_all_lead()
+    public function scheduled_all_lead(Request $request)
     {
         try {
-            $userscount = Lead::where('is_shedule', '1')->get()->count();
-            $users = Lead::where('is_shedule', '1')->orderBy('created_at', 'desc')->get();
-            // $scheduleItemsArray = [];
+            $this->shedule_date();
+            if ($request->has('category') && !$request->filled('date')) {
+                try {
+                    $request->validate([]);
+                } catch (ValidationException $e) {
+                    return response()->json(['error' => $e->validator->errors()->first()], 422);
+                }
 
-            // $usersWithSchedule = $users->each(function ($item) {
-            //     $shedule = Lead::where('id', $item->id)->where('is_shedule', '1')->get();
-            // // Log::info('date currentAPI Request: ' . json_encode($shedule));
+                $query = lead::query();
+                $searchTerm = $request->input('category');
+                $query->where('is_shedule', 1);
+                $query->whereIn('category', $searchTerm);
+                $users = $query->get();
+                $leadCount = $users->count();
+                return response()->json(['leads' => $users, 'lead_count' => $leadCount]);
+            } else if ($request->has('date') &&  empty($request->input('category'))) {
 
-            //     // $scheduleItemsArray = [];
-            //     foreach ($shedule as $scheduleItem) {
-            //         $dynamicObject = new \stdClass();
+                try {
+                    $request->validate([]);
+                } catch (ValidationException $e) {
+                    return response()->json(['error' => $e->validator->errors()->first()], 422);
+                }
 
-            //         $parsedDate = Carbon::createFromFormat('d/M/Y g:iA', $scheduleItem->date_shedule);
+                $query = lead::query();
+                $date = $request->input('date');
+                // ($query->created_at)
+                $formattedDate = Carbon::createFromFormat('d/m/Y', $date)->format('Y-m-d');
+                Log::info('date currentAPI Request: ' . json_encode($formattedDate));
+                $query->where('is_shedule', 1);
 
-            //         $daysDifference = Carbon::now()->timezone('Asia/Kolkata');
+                $query->whereDate('updated_at', '=', $formattedDate);
+                $users = $query->get();
+                $leadCount = $users->count();
+                return response()->json(['leads' => $users, 'lead_count' => $leadCount]);
+            } else if ($request->has('date') && $request->has('category')) {
+                try {
+                    $request->validate([]);
+                } catch (ValidationException $e) {
+                    return response()->json(['error' => $e->validator->errors()->first()], 422);
+                }
 
-            //         $dateOnly = $daysDifference->toDateString();
-            //         $hoursOnly = $daysDifference->format('h');
-            //         $hoursOnlyAM = $daysDifference->format('A');
-            //         $minutesOnly = $daysDifference->minute;
-            //         $dateOnlydb = $parsedDate->toDateString();
-            //         $hoursOnlydb = $parsedDate->format('h');
-            //         $hoursOnlydbAM = $parsedDate->format('A');
-            //         $minutesOnlydb = $parsedDate->minute;
-            //         // To minutePM
-            //         if (($hoursOnlydbAM == 'PM') && ($hoursOnlyAM == 'PM')) {
-            //             if (($dateOnly == $dateOnlydb) && ($hoursOnly == $hoursOnlydb)) {
-            //                 if ($minutesOnly <= $minutesOnlydb) {
-            //                     $totalMinutesDifference = $minutesOnlydb - $minutesOnly;
-            //                     $dynamicObject->total = $totalMinutesDifference .' '.  'Minute';
-            //                 }
-            //             }
-            //         }
-            //         //to minute AM
-            //         if (($hoursOnlydbAM == 'AM') && ($hoursOnlyAM == 'AM')) {
-            //             if (($dateOnly == $dateOnlydb) && ($hoursOnly == $hoursOnlydb)) {
-            //                 if ($minutesOnly <= $minutesOnlydb) {
-            //                     $totalMinutesDifference = $minutesOnlydb - $minutesOnly;
-            //                     $dynamicObject->total = $totalMinutesDifference.'minute';
-            //                 }
-            //             }
-            //         }
-            //         // To hours AM
-            //         if (($hoursOnlydbAM == 'AM') && ($hoursOnlyAM == 'AM')) {
-            //             if ($dateOnly == $dateOnlydb) {
-            //                 if (($hoursOnly < $hoursOnlydb) && ($minutesOnly <= $minutesOnlydb)) {
-            //                     $totalhours = $hoursOnlydb - $hoursOnly;
-            //                     $totalminutes = $minutesOnlydb - $minutesOnly;
-            //                     $dynamicObject->total = $totalhours . ' ' .'Hour' . ':' . $totalminutes . 'Minute';
-            //                 }
-            //             }
-            //         }
-            //         // To hours PM
-            //         if (($hoursOnlydbAM == 'PM') && ($hoursOnlyAM == 'PM')) {
-            //             if ($dateOnly == $dateOnlydb) {
-            //                 if (($hoursOnly < $hoursOnlydb) && ($minutesOnly <= $minutesOnlydb)) {
-            //                     $totalhours = $hoursOnlydb - $hoursOnly;
-            //                     $totalminutes = $minutesOnlydb - $minutesOnly;
-            //                     $dynamicObject->total = $totalhours . 'Hour' . ':' . $totalminutes . 'Minute';
-            //                 }
-            //             }
-            //         }
-            //         if (($dateOnly < $dateOnlydb)) {
-
-            //             $totald = $parsedDate->diffInDays($dateOnly);
-            //             $dynamicObject->total = $totald . 'Day';
-            //         }
-            //     }
-            //     $item->total = $dynamicObject;
-            //     return $item;
-            // });
-
-            return response()->json(['sheduleduser' => $users, 'sheduleddatecount' => $userscount]);
+                $query = lead::query();
+                $date = $request->input('date');
+                $formattedDate = Carbon::createFromFormat('d/m/Y', $date)->format('Y-m-d');
+                $category = $request->input('category');
+                $query->whereDate('updated_at', '=', $formattedDate);
+                $query->where('is_shedule', 1);
+                $query->whereIn('category', $category);
+                $users = $query->get();
+                $leadCount = $users->count();
+                return response()->json(['leads' => $users, 'lead_count' => $leadCount]);
+            } else {
+                $userscount = Lead::where('is_shedule', '1')->get()->count();
+                $users = Lead::where('is_shedule', '1')->orderBy('created_at', 'desc')->get();
+                return response()->json(['sheduleduser' => $users, 'sheduleddatecount' => $userscount]);
+            }
         } catch (\Exception $e) {
             return response()->json(['error' => 'failed', $e->getMessage()], 500);
         }
     }
+    // public function scheduled_all_lead1()
+    // {
+    //     try {
+    //         $userscount = Lead::where('is_shedule', '1')->get()->count();
+    //         $users = Lead::where('is_shedule', '1')->orderBy('created_at', 'desc')->get();
+    //         // $scheduleItemsArray = [];
+
+    //         // $usersWithSchedule = $users->each(function ($item) {
+    //         //     $shedule = Lead::where('id', $item->id)->where('is_shedule', '1')->get();
+    //         // // Log::info('date currentAPI Request: ' . json_encode($shedule));
+
+    //         //     // $scheduleItemsArray = [];
+    //         //     foreach ($shedule as $scheduleItem) {
+    //         //         $dynamicObject = new \stdClass();
+
+    //         //         $parsedDate = Carbon::createFromFormat('d/M/Y g:iA', $scheduleItem->date_shedule);
+
+    //         //         $daysDifference = Carbon::now()->timezone('Asia/Kolkata');
+
+    //         //         $dateOnly = $daysDifference->toDateString();
+    //         //         $hoursOnly = $daysDifference->format('h');
+    //         //         $hoursOnlyAM = $daysDifference->format('A');
+    //         //         $minutesOnly = $daysDifference->minute;
+    //         //         $dateOnlydb = $parsedDate->toDateString();
+    //         //         $hoursOnlydb = $parsedDate->format('h');
+    //         //         $hoursOnlydbAM = $parsedDate->format('A');
+    //         //         $minutesOnlydb = $parsedDate->minute;
+    //         //         // To minutePM
+    //         //         if (($hoursOnlydbAM == 'PM') && ($hoursOnlyAM == 'PM')) {
+    //         //             if (($dateOnly == $dateOnlydb) && ($hoursOnly == $hoursOnlydb)) {
+    //         //                 if ($minutesOnly <= $minutesOnlydb) {
+    //         //                     $totalMinutesDifference = $minutesOnlydb - $minutesOnly;
+    //         //                     $dynamicObject->total = $totalMinutesDifference .' '.  'Minute';
+    //         //                 }
+    //         //             }
+    //         //         }
+    //         //         //to minute AM
+    //         //         if (($hoursOnlydbAM == 'AM') && ($hoursOnlyAM == 'AM')) {
+    //         //             if (($dateOnly == $dateOnlydb) && ($hoursOnly == $hoursOnlydb)) {
+    //         //                 if ($minutesOnly <= $minutesOnlydb) {
+    //         //                     $totalMinutesDifference = $minutesOnlydb - $minutesOnly;
+    //         //                     $dynamicObject->total = $totalMinutesDifference.'minute';
+    //         //                 }
+    //         //             }
+    //         //         }
+    //         //         // To hours AM
+    //         //         if (($hoursOnlydbAM == 'AM') && ($hoursOnlyAM == 'AM')) {
+    //         //             if ($dateOnly == $dateOnlydb) {
+    //         //                 if (($hoursOnly < $hoursOnlydb) && ($minutesOnly <= $minutesOnlydb)) {
+    //         //                     $totalhours = $hoursOnlydb - $hoursOnly;
+    //         //                     $totalminutes = $minutesOnlydb - $minutesOnly;
+    //         //                     $dynamicObject->total = $totalhours . ' ' .'Hour' . ':' . $totalminutes . 'Minute';
+    //         //                 }
+    //         //             }
+    //         //         }
+    //         //         // To hours PM
+    //         //         if (($hoursOnlydbAM == 'PM') && ($hoursOnlyAM == 'PM')) {
+    //         //             if ($dateOnly == $dateOnlydb) {
+    //         //                 if (($hoursOnly < $hoursOnlydb) && ($minutesOnly <= $minutesOnlydb)) {
+    //         //                     $totalhours = $hoursOnlydb - $hoursOnly;
+    //         //                     $totalminutes = $minutesOnlydb - $minutesOnly;
+    //         //                     $dynamicObject->total = $totalhours . 'Hour' . ':' . $totalminutes . 'Minute';
+    //         //                 }
+    //         //             }
+    //         //         }
+    //         //         if (($dateOnly < $dateOnlydb)) {
+
+    //         //             $totald = $parsedDate->diffInDays($dateOnly);
+    //         //             $dynamicObject->total = $totald . 'Day';
+    //         //         }
+    //         //     }
+    //         //     $item->total = $dynamicObject;
+    //         //     return $item;
+    //         // });
+
+    //         return response()->json(['sheduleduser' => $users, 'sheduleddatecount' => $userscount]);
+    //     } catch (\Exception $e) {
+    //         return response()->json(['error' => 'failed', $e->getMessage()], 500);
+    //     }
+    // }
 
     public function lead_category(Request $request, $id)
     {
@@ -460,13 +522,29 @@ class LeadController extends Controller
             ]);
             $category = Lead::where('id', $id)->first();
             $category->category = $request->input('category');
-            $category->updated_at=now();
+            $category->updated_at = now();
             $category->save();
             return response()->json(['message' => 'Lead category added', 'categoy' => $category], 201);
         } catch (ValidationException $e) {
             return response()->json(['error' => $e->validator->errors()->first()], 422);
         } catch (\Exception $e) {
             return response()->json(['error' => 'Update failed', 'message' => $e->getMessage()], 500);
+        }
+    }
+    public function sheduled_single_lead($id)
+    {
+        try {
+            $lead = Lead::where("id", $id)->with(['comments' => function ($query) {
+                $query->select('*');
+            }])
+                ->select('*')->where('is_shedule', '1')
+                ->first();
+            if ($lead == null) {
+                $lead = (object) [];
+            }
+            return response()->json(['leads' => $lead]);
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Registration failed', $e->getMessage()], 500);
         }
     }
 }
