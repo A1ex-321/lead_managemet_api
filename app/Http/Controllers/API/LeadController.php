@@ -107,10 +107,11 @@ class LeadController extends Controller
                 $leadCount = $users->count();
                 return response()->json(['leads' => $users, 'lead_count' => $leadCount]);
             } else {
-                $users = Lead::orderBy('created_at', 'desc')->get();
-                $userscount = Lead::where('is_shedule', '0')->get()->count();
-                $users = Lead::where('is_shedule', '0')->orderBy('created_at', 'desc')->get();
-                return response()->json(['leads' => $users, 'lead_count' => $userscount]);
+                //  $users = Lead::orderBy('created_at', 'desc')->get();
+                // $userscount = Lead::where('is_shedule', '0')->get()->count();
+                $users = Lead::where('is_shedule', '0')->orderBy('created_at', 'desc')->whereNot('category','Unwanted')->get();
+                $leadCount = $users->count();
+                return response()->json(['leads' => $users, 'lead_count' => $leadCount]);
             }
         } catch (\Exception $e) {
             return response()->json(['error' => 'failed', $e->getMessage()], 500);
@@ -387,7 +388,7 @@ class LeadController extends Controller
                 $query->whereIn('category', $searchTerm);
                 $users = $query->get();
                 $leadCount = $users->count();
-                return response()->json(['leads' => $users, 'lead_count' => $leadCount]);
+                return response()->json(['sheduleduser' => $users, 'sheduleddatecount' => $leadCount]);
             } else if ($request->has('date') &&  empty($request->input('category'))) {
 
                 try {
@@ -406,7 +407,7 @@ class LeadController extends Controller
                 $query->whereDate('updated_at', '=', $formattedDate);
                 $users = $query->get();
                 $leadCount = $users->count();
-                return response()->json(['leads' => $users, 'lead_count' => $leadCount]);
+                return response()->json(['sheduleduser' => $users, 'sheduleddatecount' => $leadCount]);
             } else if ($request->has('date') && $request->has('category')) {
                 try {
                     $request->validate([]);
@@ -423,10 +424,12 @@ class LeadController extends Controller
                 $query->whereIn('category', $category);
                 $users = $query->get();
                 $leadCount = $users->count();
-                return response()->json(['leads' => $users, 'lead_count' => $leadCount]);
+                return response()->json(['sheduleduser' => $users, 'sheduleddatecount' => $leadCount]);
             } else {
-                $userscount = Lead::where('is_shedule', '1')->get()->count();
-                $users = Lead::where('is_shedule', '1')->orderBy('created_at', 'desc')->get();
+                // $userscount = Lead::where('is_shedule', '1')->get()->count();
+                $users = Lead::where('is_shedule', '1')->orderBy('created_at', 'desc')->whereNot('category', 'Unwanted')->get();
+                $userscount = $users->count();
+
                 return response()->json(['sheduleduser' => $users, 'sheduleddatecount' => $userscount]);
             }
         } catch (\Exception $e) {
