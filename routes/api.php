@@ -3,6 +3,8 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\API\LeadController;
+use App\Http\Controllers\API\AuthController;
+
 
 
 /*
@@ -32,6 +34,9 @@ Route::get('/message_get/{id}', [LeadController::class, 'message_get']);
 Route::get('/scheduled_lead', [LeadController::class, 'scheduled_all_lead']);
 Route::post('/lead_category/{id}', [LeadController::class, 'lead_category']);
 Route::get('/sheduledsingleleads/{id}', [LeadController::class, 'sheduled_single_lead']);
+Route::post('/register', [AuthController::class, 'register']);
+Route::post('/login', [AuthController::class, 'loginUser']);
+Route::post('/tagcreate/{id}', [LeadController::class, 'tags_create']);
 
 
 

@@ -56,7 +56,8 @@ class LeadController extends Controller
     {
         try {
             $this->shedule_date();
-            if ($request->has('category') && !$request->filled('date')) {
+            Log::info('Request Data: ' . json_encode($request->all()));
+            if ($request->has('category') && !$request->filled('date') && empty($request->input('tags'))) {
                 try {
                     $request->validate([]);
                 } catch (ValidationException $e) {
@@ -70,7 +71,7 @@ class LeadController extends Controller
                 $users = $query->get();
                 $leadCount = $users->count();
                 return response()->json(['leads' => $users, 'lead_count' => $leadCount]);
-            } else if ($request->has('date') &&  empty($request->input('category'))) {
+            } else if ($request->has('date') &&  empty($request->input('category') && empty($request->input('tags')))) {
 
                 try {
                     $request->validate([]);
@@ -89,7 +90,7 @@ class LeadController extends Controller
                 $users = $query->get();
                 $leadCount = $users->count();
                 return response()->json(['leads' => $users, 'lead_count' => $leadCount]);
-            } else if ($request->has('date') && $request->has('category')) {
+            } else if ($request->has('date') && $request->has('category') && empty($request->input('tags'))) {
                 try {
                     $request->validate([]);
                 } catch (ValidationException $e) {
@@ -106,10 +107,11 @@ class LeadController extends Controller
                 $users = $query->get();
                 $leadCount = $users->count();
                 return response()->json(['leads' => $users, 'lead_count' => $leadCount]);
-            } else {
+            }
+            else {
                 //  $users = Lead::orderBy('created_at', 'desc')->get();
                 // $userscount = Lead::where('is_shedule', '0')->get()->count();
-                $users = Lead::where('is_shedule', '0')->orderBy('created_at', 'desc')->whereNot('category','Unwanted')->get();
+                $users = Lead::where('is_shedule', '0')->orderBy('created_at', 'desc')->whereNotIn('category', ['Unwanted', 'For Job', 'Not Sale'])->get();
                 $leadCount = $users->count();
                 return response()->json(['leads' => $users, 'lead_count' => $leadCount]);
             }
@@ -427,7 +429,7 @@ class LeadController extends Controller
                 return response()->json(['sheduleduser' => $users, 'sheduleddatecount' => $leadCount]);
             } else {
                 // $userscount = Lead::where('is_shedule', '1')->get()->count();
-                $users = Lead::where('is_shedule', '1')->orderBy('created_at', 'desc')->whereNot('category', 'Unwanted')->get();
+                $users = Lead::where('is_shedule', '1')->orderBy('created_at', 'desc')->whereNotIn('category', ['Unwanted', 'For Job', 'Not Sale'])->get();
                 $userscount = $users->count();
 
                 return response()->json(['sheduleduser' => $users, 'sheduleddatecount' => $userscount]);
@@ -548,6 +550,27 @@ class LeadController extends Controller
             return response()->json(['leads' => $lead]);
         } catch (\Exception $e) {
             return response()->json(['error' => 'Registration failed', $e->getMessage()], 500);
+        }
+    }
+    public function tags_create(Request $request, $id)
+    {
+        try {
+            $request->validate([
+                'tags' => 'required|array',
+            ]);
+
+            $lead = Lead::findOrFail($id);
+            $tags = $request->input('tags');
+            // $tagsString = implode(',', $request->input('tags'));            
+            // $lead->tags = $tagsString;
+            $lead->tags_update = now();
+            $lead->tags = json_encode($tags);
+            $lead->save();
+            return response()->json(['message' => 'tag created successfully',], 201);
+        } catch (ValidationException $e) {
+            return response()->json(['error' => $e->validator->errors()->first()], 422);
+        } catch (\Exception $e) {
+            return response()->json(['error' => ' failed', $e->getMessage()], 500);
         }
     }
 }
