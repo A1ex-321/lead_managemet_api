@@ -71,6 +71,27 @@ class LeadController extends Controller
                 $users = $query->get();
                 $leadCount = $users->count();
                 return response()->json(['leads' => $users, 'lead_count' => $leadCount]);
+            } else if ($request->has('tags') && empty($request->input('category')) && empty($request->input('date'))) {
+                $tags = $request->input('tags');
+                // Log::info('date currentAPI Request: ' . json_encode($tags));
+                $query = lead::query();
+                $query->where('is_shedule', 0);
+                foreach ($query->get() as $item) {
+                    $tagsArrays = json_decode($item->tags, true);
+                    $tagsid = $item->id;
+                    $tagsData[$tagsid] = $tagsArrays;
+                }
+                $id = [];
+                foreach ($tagsData as $tagsid => $tagsArrays) {
+                    Log::info('date currentAPI Request: ' . json_encode($tagsArrays));
+
+                    if (count(array_intersect($tags, $tagsArrays)) > 0) {
+                        $id[] = $tagsid;
+                    }
+                }
+                $leadCount = count($id);
+                $leads = lead::whereIn('id', $id)->get();
+                return response()->json(['leads' => $leads, 'lead_count' => $leadCount]);
             } else if ($request->has('date') &&  empty($request->input('category') && empty($request->input('tags')))) {
 
                 try {
@@ -107,8 +128,7 @@ class LeadController extends Controller
                 $users = $query->get();
                 $leadCount = $users->count();
                 return response()->json(['leads' => $users, 'lead_count' => $leadCount]);
-            }
-            else {
+            } else {
                 //  $users = Lead::orderBy('created_at', 'desc')->get();
                 // $userscount = Lead::where('is_shedule', '0')->get()->count();
                 $users = Lead::where('is_shedule', '0')->orderBy('created_at', 'desc')->whereNotIn('category', ['Unwanted', 'For Job', 'Not Sale'])->get();
