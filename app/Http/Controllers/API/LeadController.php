@@ -221,7 +221,7 @@ class LeadController extends Controller
             return response()->json(['message' => 'lead not found'], 404);
         }
         $lead->delete();
-        return response()->json(['message' => 'lead deleted successfully'], 404);
+        return response()->json(['message' => 'lead deleted successfully'], 200);
     }
     public function message_create(Request $request)
     {
