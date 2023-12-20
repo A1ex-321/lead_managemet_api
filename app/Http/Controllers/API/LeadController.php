@@ -218,7 +218,7 @@ class LeadController extends Controller
         $lead = lead::find($id);
 
         if (!$lead) {
-            return response()->json(['error' => 'lead not found'], 404);
+            return response()->json(['message' => 'lead not found'], 404);
         }
         $lead->delete();
         return response()->json(['msg' => 'lead deleted successfully'], 404);
