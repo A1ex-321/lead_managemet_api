@@ -397,7 +397,7 @@ class LeadController extends Controller
     {
         try {
             $this->shedule_date();
-            if ($request->has('category') && !$request->filled('date')) {
+            if ($request->has('category') && !$request->filled('date') && empty($request->input('tags'))) {
                 try {
                     $request->validate([]);
                 } catch (ValidationException $e) {
@@ -411,7 +411,29 @@ class LeadController extends Controller
                 $users = $query->get();
                 $leadCount = $users->count();
                 return response()->json(['sheduleduser' => $users, 'sheduleddatecount' => $leadCount]);
-            } else if ($request->has('date') &&  empty($request->input('category'))) {
+            } 
+            else if ($request->has('tags') && empty($request->input('category')) && empty($request->input('date'))) {
+                $tags = $request->input('tags');
+                // Log::info('date currentAPI Request: ' . json_encode($tags));
+                $query = lead::query();
+                $query->where('is_shedule', 1);
+                foreach ($query->get() as $item) {
+                    $tagsArrays = json_decode($item->tags, true);
+                    $tagsid = $item->id;
+                    $tagsData[$tagsid] = $tagsArrays;
+                }
+                $id = [];
+                foreach ($tagsData as $tagsid => $tagsArrays) {
+                    Log::info('date currentAPI Request: ' . json_encode($tagsArrays));
+
+                    if (count(array_intersect($tags, $tagsArrays)) > 0) {
+                        $id[] = $tagsid;
+                    }
+                }
+                $leadCount = count($id);
+                $leads = lead::whereIn('id', $id)->get();
+                return response()->json(['leads' => $leads, 'lead_count' => $leadCount]);
+            } else if ($request->has('date') &&  empty($request->input('category') && empty($request->input('tags')))) {
 
                 try {
                     $request->validate([]);
@@ -430,7 +452,7 @@ class LeadController extends Controller
                 $users = $query->get();
                 $leadCount = $users->count();
                 return response()->json(['sheduleduser' => $users, 'sheduleddatecount' => $leadCount]);
-            } else if ($request->has('date') && $request->has('category')) {
+            } else if ($request->has('date') && $request->has('category') && empty($request->input('tags'))) {
                 try {
                     $request->validate([]);
                 } catch (ValidationException $e) {
