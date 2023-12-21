@@ -432,7 +432,7 @@ class LeadController extends Controller
                 }
                 $leadCount = count($id);
                 $leads = lead::whereIn('id', $id)->get();
-                return response()->json(['leads' => $leads, 'lead_count' => $leadCount]);
+                return response()->json(['sheduleduser' => $leads, 'sheduleddatecount' => $leadCount]);
             } else if ($request->has('date') &&  empty($request->input('category') && empty($request->input('tags')))) {
 
                 try {
