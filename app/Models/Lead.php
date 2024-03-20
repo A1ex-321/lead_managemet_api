@@ -20,4 +20,9 @@ class Lead extends Model
     {
         return $this->hasMany(Comments::class, 'lead_id');
     }
+
+    public function activities()
+    {
+        return $this->hasMany(Activity::class, 'lead_id');
+    }
 }

@@ -1,16 +1,11 @@
 <?php
 
-namespace App\Http\Controllers\Api;
-
-use App\Http\Controllers\Api\stdClass;
-
-use Illuminate\Support\Facades\Hash;
-
-namespace App\Http\Controllers\Api;
+namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Lead;
+use App\Models\Group;
 use App\Models\Comments;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
@@ -18,10 +13,24 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Response;
-
+use Illuminate\Validation\Rule;
+use App\Services\GroupService;
+use App\Services\TagsService;
+use App\Events\LeadsActivity;
+use Illuminate\Support\Facades\Auth;
 
 class LeadController extends Controller
 {
+
+    protected $groupService;
+    protected $tagsService;
+
+    public function __construct(GroupService $groupService, TagsService $tagsService)
+    {
+        $this->groupService = $groupService;
+        $this->tagsService = $tagsService;
+    }
+
     public function lead_create(Request $request)
     {
         try {
@@ -139,6 +148,93 @@ class LeadController extends Controller
             return response()->json(['error' => 'failed', $e->getMessage()], 500);
         }
     }
+
+    public function everyLeads(Request $request)
+    {
+        try {
+            $this->shedule_date();
+            Log::info('Request Data: ' . json_encode($request->all()));
+            if ($request->has('category') && !$request->filled('date') && empty($request->input('tags'))) {
+                try {
+                    $request->validate([]);
+                } catch (ValidationException $e) {
+                    return response()->json(['error' => $e->validator->errors()->first()], 422);
+                }
+
+                $query = lead::query();
+                $searchTerm = $request->input('category');
+                $query->whereIn('category', $searchTerm);
+                $users = $query->get();
+                $leadCount = $users->count();
+                return response()->json(['leads' => $users, 'lead_count' => $leadCount]);
+            } else if ($request->has('tags') && empty($request->input('category')) && empty($request->input('date'))) {
+                $tags = $request->input('tags');
+                // Log::info('date currentAPI Request: ' . json_encode($tags));
+                $query = lead::query();
+                foreach ($query->get() as $item) {
+                    $tagsArrays = json_decode($item->tags, true);
+                    $tagsid = $item->id;
+                    $tagsData[$tagsid] = $tagsArrays;
+                }
+                $id = [];
+                foreach ($tagsData as $tagsid => $tagsArrays) {
+                    Log::info('date currentAPI Request: ' . json_encode($tagsArrays));
+
+                    if (count(array_intersect($tags, $tagsArrays)) > 0) {
+                        $id[] = $tagsid;
+                    }
+                }
+                $leadCount = count($id);
+                $leads = lead::whereIn('id', $id)->get();
+                return response()->json(['leads' => $leads, 'lead_count' => $leadCount]);
+            } else if ($request->has('date') &&  empty($request->input('category') && empty($request->input('tags')))) {
+
+                try {
+                    $request->validate([]);
+                } catch (ValidationException $e) {
+                    return response()->json(['error' => $e->validator->errors()->first()], 422);
+                }
+
+                $query = lead::query();
+                $date = $request->input('date');
+                // ($query->created_at)
+                $formattedDate = Carbon::createFromFormat('d/m/Y', $date)->format('Y-m-d');
+                Log::info('date currentAPI Request: ' . json_encode($formattedDate));
+
+                $query->whereDate('updated_at', '=', $formattedDate);
+                $users = $query->get();
+                $leadCount = $users->count();
+                return response()->json(['leads' => $users, 'lead_count' => $leadCount]);
+            } else if ($request->has('date') && $request->has('category') && empty($request->input('tags'))) {
+                try {
+                    $request->validate([]);
+                } catch (ValidationException $e) {
+                    return response()->json(['error' => $e->validator->errors()->first()], 422);
+                }
+
+                $query = lead::query();
+                $date = $request->input('date');
+                $formattedDate = Carbon::createFromFormat('d/m/Y', $date)->format('Y-m-d');
+                $category = $request->input('category');
+                $query->whereDate('updated_at', '=', $formattedDate);
+                $query->whereIn('category', $category);
+                $users = $query->get();
+                $leadCount = $users->count();
+
+                return response()->json(['leads' => $users, 'lead_count' => $leadCount]);
+            } else {
+                //  $users = Lead::orderBy('created_at', 'desc')->get();
+                // $userscount = Lead::where('is_shedule', '0')->get()->count();
+                $users = Lead::orderBy('created_at', 'desc')->whereNotIn('category', ['Unwanted', 'For Job', 'Not Sale'])->get();
+                $leadCount = $users->count();
+
+                return response()->json(['leads' => $users, 'lead_count' => $leadCount]);
+            }
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'failed', $e->getMessage()], 500);
+        }
+    }
+
     public function single_lead($id)
     {
         try {
@@ -146,6 +242,22 @@ class LeadController extends Controller
                 $query->select('*');
             }])
                 ->select('*')->where('is_shedule', '0')
+                ->first();
+            if ($lead == null) {
+                $lead = (object) [];
+            }
+            return response()->json(['leads' => $lead]);
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Registration failed', $e->getMessage()], 500);
+        }
+    }
+    public function every_single_lead($id)
+    {
+        try {
+            $lead = Lead::where("id", $id)->with(['comments' => function ($query) {
+                $query->select('*');
+            }])
+                ->select('*')
                 ->first();
             if ($lead == null) {
                 $lead = (object) [];
@@ -177,6 +289,7 @@ class LeadController extends Controller
             $pagedData = array_slice($userDetails, ($currentPage - 1) * $perPage, $perPage);
             $usersPaginated = new LengthAwarePaginator($pagedData, count($userDetails), $perPage);
             $usersPaginated->setPath(request()->url());
+
             return response()->json(['leads' => $usersPaginated]);
         } catch (\Exception $e) {
             return response()->json(['error' => 'failed', $e->getMessage()], 500);
@@ -248,6 +361,11 @@ class LeadController extends Controller
                     'userPic' => 'https://img.freepik.com/free-psd/3d-illustration-human-avatar-profile_23-2150671132.jpg?w=740&t=st=1702363051~exp=1702363651~hmac=c72204cd50f9532760a676be0f9407cd87bb69c00645202763974ea861f1e88d'
                 ];
             }
+
+            $userId = (int) $request->input('userId');
+
+            event(new LeadsActivity($userId, $request->input('lead_id'), 'comments_added', ['route' => '/message_create', 'lead_id' => $request->input('lead_id')] ));
+
             return response()->json(['message' => 'message created successfully', 'comments' => $comment], 201);
         } catch (ValidationException $e) {
             return response()->json(['error' => $e->validator->errors()->first()], 422);
@@ -279,6 +397,10 @@ class LeadController extends Controller
             $lead->is_shedule = $request->input('is_shedule');
             $lead->date_shedule  = $date;
             $lead->save();
+
+            $userId = (int) $request->input('userId');
+
+            event(new LeadsActivity($userId, $id, 'scheduled_lead_accessed', ['route' => '/date_schedule', 'lead_id' => $id] ));
 
             return response()->json(['message' => 'Lead scheduled', 'data' => $lead], 201);
         } catch (ValidationException $e) {
@@ -314,6 +436,8 @@ class LeadController extends Controller
                                 if ($new_update) {
                                     $new_update->is_shedule = 0;
                                     $new_update->save();
+
+                                    $new_update->touch();
                                 }
                             }
                         }
@@ -326,6 +450,8 @@ class LeadController extends Controller
                                 if ($new_update) {
                                     $new_update->is_shedule = 0;
                                     $new_update->save();
+
+                                    $new_update->touch();
                                 }
                             }
                         }
@@ -338,6 +464,8 @@ class LeadController extends Controller
                                 if ($new_update) {
                                     $new_update->is_shedule = 0;
                                     $new_update->save();
+
+                                    $new_update->touch();
                                 }
                             }
                         }
@@ -350,6 +478,8 @@ class LeadController extends Controller
                                 if ($new_update) {
                                     $new_update->is_shedule = 0;
                                     $new_update->save();
+
+                                    $new_update->touch();
                                 }
                             }
                         }
@@ -360,6 +490,8 @@ class LeadController extends Controller
                         if ($new_update) {
                             $new_update->is_shedule = 0;
                             $new_update->save();
+
+                            $new_update->touch();
                         }
                     }
                 }
@@ -383,8 +515,8 @@ class LeadController extends Controller
                     'userName' => $lead->name,
                     'comment' => $item->comment,
                     'postedOn' => $item->postedOn,
+                    "created_at" => $item->created_at,
                     'comment_id' => $item->id,
-
                 ];
             }
 
@@ -411,8 +543,7 @@ class LeadController extends Controller
                 $users = $query->get();
                 $leadCount = $users->count();
                 return response()->json(['sheduleduser' => $users, 'sheduleddatecount' => $leadCount]);
-            } 
-            else if ($request->has('tags') && empty($request->input('category')) && empty($request->input('date'))) {
+            } else if ($request->has('tags') && empty($request->input('category')) && empty($request->input('date'))) {
                 $tags = $request->input('tags');
                 // Log::info('date currentAPI Request: ' . json_encode($tags));
                 $query = lead::query();
@@ -571,6 +702,11 @@ class LeadController extends Controller
             $category->category = $request->input('category');
             $category->updated_at = now();
             $category->save();
+
+            $userId = (int) $request->input('userId');
+
+            event(new LeadsActivity($userId, $id, 'category_was_updated', ['route' => '/lead_category', 'lead_id' => $id] ));
+
             return response()->json(['message' => 'Lead category added', 'categoy' => $category], 201);
         } catch (ValidationException $e) {
             return response()->json(['error' => $e->validator->errors()->first()], 422);
@@ -608,11 +744,110 @@ class LeadController extends Controller
             $lead->tags_update = now();
             $lead->tags = json_encode($tags);
             $lead->save();
+
+            $userId = (int) $request->input('userId');
+
+            event(new LeadsActivity($userId, $id, 'tag_updated', ['route' => '/tags_create', 'lead_id' => $id] ));
+
             return response()->json(['message' => 'tag created successfully',], 201);
         } catch (ValidationException $e) {
             return response()->json(['error' => $e->validator->errors()->first()], 422);
         } catch (\Exception $e) {
             return response()->json(['error' => ' failed', $e->getMessage()], 500);
         }
+    }
+
+    public function get_tags(Request $request)
+    {
+        $request->validate([
+            'formatted' => [
+                'numeric',
+            ],
+        ]);
+        try {
+            return  $this->tagsService->getTags($request);
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'failed', 'message' => $e->getMessage()], 500);
+        }
+    }
+
+
+    public function group_create(Request $request)
+    {
+        try {
+            // Validate the request data
+            $request->validate([
+                'title' => [
+                    'required',
+                    'string',
+                    Rule::unique('groups'),
+                ],
+                'category' => 'array',
+                'tags' => 'array',
+            ]);
+
+            $group = Group::create([
+                'title' => $request->input('title'),
+                'category' => $request->input('category'),
+                'tags' => $request->input('tags'),
+            ]);
+
+            // Return a success response
+            return response()->json(['message' => 'Group created successfully'], 201);
+        } catch (ValidationException $e) {
+            // Return a validation error response
+            return response()->json(['error' => $e->validator->errors()->first()], 422);
+        } catch (\Exception $e) {
+            // Return a general error response
+            return response()->json(['error' => 'Failed to create group', 'details' => $e->getMessage()], 500);
+        }
+    }
+
+    public function group_get()
+    {
+        return $this->groupService->getAllGroups();
+    }
+
+    public function group_delete($id)
+    {
+        $this->groupService->destroy($id);
+
+        return response()->json(['message' => 'Group deleted successfully'], 200);
+    }
+
+    public function groupLeads($id)
+    {
+        try {
+
+            return $this->groupService->getGroupById($id);
+        } catch (\Exception $e) {
+            // Return a general error response
+            return response()->json(['error' => 'Failed to get group leads', 'details' => $e->getMessage()], 500);
+        }
+    }
+
+    public function save_tags(Request $request)
+    {
+        try {
+            $request->validate([
+                'tags' => [
+                    'required',
+                    'string',
+                    Rule::unique('tags'),
+                ],
+            ]);
+
+            return $this->tagsService->saveTags($request);
+        } catch (\Exception $e) {
+
+            return response()->json(['error' => 'Failed to store tags', 'details' => $e->getMessage()], 500);
+        }
+    }
+
+    public function tag_delete($id)
+    {
+        $this->tagsService->destroy($id);
+
+        return response()->json(['message' => 'Tag deleted successfully'], 200);
     }
 }
